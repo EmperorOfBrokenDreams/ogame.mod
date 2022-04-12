@@ -24,12 +24,12 @@ jobs:
       run: |
         for GOOSV in darwin; do
           for GOARCHV in amd64; do
-            #env GOOS=$GOOSV GOARCH=$GOARCHV CGO_ENABLED=0 go build -v -a -ldflags '-s -w' -o ./bin/ogame-bot-$GOOSV-$GOARCHV
+            env GOOS=$GOOSV GOARCH=$GOARCHV CGO_ENABLED=0 go build -v -a -ldflags '-s -w' -o ./bin/ogame-bot-$GOOSV-$GOARCHV
           done
         done
         for GOOSV in linux; do
           for GOARCHV in amd64 arm arm64; do
-            #env GOOS=$GOOSV GOARCH=$GOARCHV CGO_ENABLED=0 go build -v -a -ldflags '-s -w' -o ./bin/ogame-bot-$GOOSV-$GOARCHV
+            env GOOS=$GOOSV GOARCH=$GOARCHV CGO_ENABLED=0 go build -v -a -ldflags '-s -w' -o ./bin/ogame-bot-$GOOSV-$GOARCHV
           done
         done
         for GOOSV in windows; do
