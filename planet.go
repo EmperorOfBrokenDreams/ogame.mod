@@ -31,13 +31,13 @@ func (t Temperature) Mean() int64 {
 type Planet struct {
 	ogame       *OGame
 	Img         string
-	ID          PlanetID
+	ID          PlanetID `gorm:"type:uint"`
 	Name        string
 	Diameter    int64
-	Coordinate  Coordinate
-	Fields      Fields
-	Temperature Temperature
-	Moon        *Moon
+	Coordinate  Coordinate  `gorm:"embedded"`
+	Fields      Fields      `gorm:"embedded"`
+	Temperature Temperature `gorm:"embedded"`
+	Moon        *Moon       `gorm:"-"`
 }
 
 // String ..
@@ -194,8 +194,8 @@ func (p *Planet) GetResourcesProductions() (Resources, error) {
 }
 
 // FlightTime calculate flight time and fuel needed
-func (p *Planet) FlightTime(destination Coordinate, speed Speed, ships ShipsInfos, missionID MissionID) (secs, fuel int64) {
-	return p.ogame.FlightTime(p.Coordinate, destination, speed, ships, missionID)
+func (p *Planet) FlightTime(destination Coordinate, speed Speed, ships ShipsInfos, missionID MissionID, holdingTime int64) (secs, fuel int64) {
+	return p.ogame.FlightTime(p.Coordinate, destination, speed, ships, missionID, holdingTime)
 }
 
 // SendIPM send interplanetary missiles

@@ -11,6 +11,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/alaingilbert/clockwork"
+	"github.com/labstack/gommon/log"
 )
 
 func getNbrV7(doc *goquery.Document, name string) int64 {
@@ -35,6 +36,55 @@ func extractPremiumTokenV7(pageHTML []byte, days int64) (token string, err error
 
 func extractResourcesDetailsFromFullPageFromDocV7(doc *goquery.Document) ResourcesDetails {
 	out := ResourcesDetails{}
+
+	scriptTxt := doc.Find("script")
+
+	var m []string
+	var found bool
+	var pageHTML []byte
+	//r := regexp.MustCompile(`function initAjaxResourcebox\(\)(.+)+\);`)
+	r := regexp.MustCompile(`reloadResources\((.+)+\);`)
+
+	var res resourcesRespV71
+	scriptTxt.Each(func(i int, s *goquery.Selection) {
+		m = r.FindStringSubmatch(s.Text())
+		if len(m) == 2 && !found {
+			found = true
+			pageHTML = []byte(m[1])
+		}
+	})
+
+	if found {
+		err := json.Unmarshal(pageHTML, &res)
+		if err != nil {
+			log.Print(err)
+		}
+		out.Metal.Available = int64(res.Resources.Metal.Amount)
+		out.Metal.StorageCapacity = int64(res.Resources.Metal.Storage)
+		out.Crystal.Available = int64(res.Resources.Crystal.Amount)
+		out.Crystal.StorageCapacity = int64(res.Resources.Crystal.Storage)
+		out.Deuterium.Available = int64(res.Resources.Deuterium.Amount)
+		out.Deuterium.StorageCapacity = int64(res.Resources.Deuterium.Storage)
+		out.Energy.Available = int64(res.Resources.Energy.Amount)
+		out.Darkmatter.Available = int64(res.Resources.Darkmatter.Amount)
+		metalDoc, _ := goquery.NewDocumentFromReader(strings.NewReader(res.Resources.Metal.Tooltip))
+		crystalDoc, _ := goquery.NewDocumentFromReader(strings.NewReader(res.Resources.Crystal.Tooltip))
+		deuteriumDoc, _ := goquery.NewDocumentFromReader(strings.NewReader(res.Resources.Deuterium.Tooltip))
+		darkmatterDoc, _ := goquery.NewDocumentFromReader(strings.NewReader(res.Resources.Darkmatter.Tooltip))
+		energyDoc, _ := goquery.NewDocumentFromReader(strings.NewReader(res.Resources.Energy.Tooltip))
+		out.Metal.CurrentProduction = ParseInt(metalDoc.Find("table tr").Eq(2).Find("td").Eq(0).Text())
+		out.Crystal.CurrentProduction = ParseInt(crystalDoc.Find("table tr").Eq(2).Find("td").Eq(0).Text())
+		out.Deuterium.CurrentProduction = ParseInt(deuteriumDoc.Find("table tr").Eq(2).Find("td").Eq(0).Text())
+		out.Energy.CurrentProduction = ParseInt(energyDoc.Find("table tr").Eq(1).Find("td").Eq(0).Text())
+		out.Energy.Consumption = ParseInt(energyDoc.Find("table tr").Eq(2).Find("td").Eq(0).Text())
+		out.Darkmatter.Purchased = ParseInt(darkmatterDoc.Find("table tr").Eq(1).Find("td").Eq(0).Text())
+		out.Darkmatter.Found = ParseInt(darkmatterDoc.Find("table tr").Eq(2).Find("td").Eq(0).Text())
+		out.Metal.Production = int64(res.Resources.Metal.BaseProduction*3600 + res.Techs.Num1.Production.Metal*3600)
+		out.Crystal.Production = int64(res.Resources.Crystal.BaseProduction*3600 + res.Techs.Num2.Production.Crystal*3600)
+		out.Deuterium.Production = int64(res.Resources.Deuterium.BaseProduction*3600 + res.Techs.Num3.Production.Deuterium*3600)
+		return out
+	}
+
 	out.Metal.Available = ParseInt(strings.Split(doc.Find("span#resources_metal").AttrOr("data-raw", "0"), ".")[0])
 	out.Crystal.Available = ParseInt(strings.Split(doc.Find("span#resources_crystal").AttrOr("data-raw", "0"), ".")[0])
 	out.Deuterium.Available = ParseInt(strings.Split(doc.Find("span#resources_deuterium").AttrOr("data-raw", "0"), ".")[0])
@@ -241,6 +291,42 @@ func extractIPMFromDocV7(doc *goquery.Document) (duration, max int64, token stri
 	return
 }
 
+func extractFleet1ResearchesFromDocV7(doc *goquery.Document) (r Researches) {
+	//var apiTechData = [[109,0],[110,0],[111,4],[115,4],[117,3],[118,0],[114,0]];
+	onclick := doc.Find("div#fleetdispatchcomponent")
+	h, _ := onclick.Html()
+	matches := regexp.MustCompile(`var apiTechData = ([^;]+);`).FindStringSubmatch(h)
+	if len(matches) == 0 {
+		return
+	}
+	m := matches[1]
+	var res [][]int64
+	if err := json.Unmarshal([]byte(m), &res); err != nil {
+		return
+	}
+	for _, obj := range res {
+		researchID := obj[0]
+		level := obj[1]
+		switch ID(researchID) {
+		case WeaponsTechnology.ID:
+			r.WeaponsTechnology = level
+		case ShieldingTechnology.ID:
+			r.ShieldingTechnology = level
+		case ArmourTechnology.ID:
+			r.ArmourTechnology = level
+		case HyperspaceTechnology.ID:
+			r.HyperspaceTechnology = level
+		case CombustionDrive.ID:
+			r.CombustionDrive = level
+		case ImpulseDrive.ID:
+			r.ImpulseDrive = level
+		case HyperspaceDrive.ID:
+			r.HyperspaceDrive = level
+		}
+	}
+	return
+}
+
 func extractFleet1ShipsFromDocV7(doc *goquery.Document) (s ShipsInfos) {
 	onclick := doc.Find("div#fleetdispatchcomponent")
 	h, _ := onclick.Html()
@@ -312,6 +398,47 @@ func extractCombatReportMessagesFromDocV7(doc *goquery.Document) ([]CombatReport
 				if report.Origin.Equal(report.Destination) {
 					report.Origin = nil
 				}
+
+				// Attacker
+				var AttackerUnitsLost int64
+				AttackerUnitsLostText := s.Find("span.msg_content div.combatLeftSide span").Eq(0).AttrOr("title", "0")
+				AttackerUnitsLost = ParseInt(AttackerUnitsLostText)
+				report.AttackerUnitsLost = AttackerUnitsLost
+
+				AttackerNameText := s.Find("span.msg_content div.combatLeftSide span").Eq(0).Text()
+				AttackerNameTextSplit := strings.Split(AttackerNameText, ":")
+				var AttackerName string
+				if len(AttackerNameTextSplit) >= 2 {
+					AttackerName = strings.ReplaceAll(AttackerNameTextSplit[1], "(", "")
+					AttackerName = strings.ReplaceAll(AttackerName, ")", "")
+					AttackerName = strings.TrimSpace(AttackerName)
+				}
+				report.AttackerName = AttackerName
+
+				// Defender
+				var DefenderUnitsLost int64
+				DefenderUnitsLostText := s.Find("span.msg_content div.combatRightSide span").Eq(0).AttrOr("title", "0")
+				DefenderUnitsLost = ParseInt(DefenderUnitsLostText)
+				report.DefenderUnitsLost = DefenderUnitsLost
+
+				DefenderNameText := s.Find("span.msg_content div.combatRightSide span").Eq(0).Text()
+				DefenderNameTextSplit := strings.Split(DefenderNameText, ":")
+				var DefenderName string
+				if len(AttackerNameTextSplit) >= 2 {
+					DefenderName = strings.ReplaceAll(DefenderNameTextSplit[1], "(", "")
+					DefenderName = strings.ReplaceAll(DefenderName, ")", "")
+					DefenderName = strings.TrimSpace(DefenderName)
+				}
+				report.DefenderName = DefenderName
+
+				// Moon Chance
+				moonChanceText := s.Find("span.msg_content div.combatRightSide span").Eq(2).Text()
+				moonChanceSplit := strings.Split(moonChanceText, ":")
+				var moonChance string
+				if len(moonChanceSplit) >= 2 {
+					moonChance = strings.ReplaceAll(moonChanceSplit[1], "%", "")
+				}
+				report.MoonChance = ParseInt(moonChance)
 
 				msgs = append(msgs, report)
 			}
@@ -714,6 +841,24 @@ func extractCharacterClassFromDocV7(doc *goquery.Document) (CharacterClass, erro
 		return Discoverer, nil
 	}
 	return 0, errors.New("character class not found")
+}
+
+func extractMessagesFromDocV7(doc *goquery.Document, location *time.Location) ([]Message, int64, error) {
+	msgs := make([]Message, 0)
+	nbPage, _ := strconv.ParseInt(doc.Find("ul.pagination li").Last().AttrOr("data-page", "1"), 10, 64)
+	doc.Find("li.msg").Each(func(i int, s *goquery.Selection) {
+		if idStr, exists := s.Attr("data-msg-id"); exists {
+			if id, err := strconv.ParseInt(idStr, 10, 64); err == nil {
+				msg := Message{ID: id}
+				msg.CreatedAt, _ = time.ParseInLocation("02.01.2006 15:04:05", s.Find(".msg_date").Text(), location)
+				msg.Title = s.Find(".msg_title a").Text()
+				msg.Content, _ = s.Find("span.msg_content").Html()
+				msg.Content = strings.TrimSpace(msg.Content)
+				msgs = append(msgs, msg)
+			}
+		}
+	})
+	return msgs, nbPage, nil
 }
 
 func extractExpeditionMessagesFromDocV7(doc *goquery.Document, location *time.Location) ([]ExpeditionMessage, int64, error) {

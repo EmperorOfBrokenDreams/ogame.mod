@@ -1,6 +1,8 @@
 package ogame
 
-import "strconv"
+import (
+	"strconv"
+)
 
 // MissionID represent a mission id
 type MissionID int

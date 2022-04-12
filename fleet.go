@@ -8,10 +8,10 @@ type Fleet struct {
 	ReturnFlight   bool
 	InDeepSpace    bool
 	ID             FleetID
-	Resources      Resources
-	Origin         Coordinate
-	Destination    Coordinate
-	Ships          ShipsInfos
+	Resources      Resources  `gorm:"embedded"`
+	Origin         Coordinate `gorm:"embedded"`
+	Destination    Coordinate `gorm:"embedded"`
+	Ships          ShipsInfos `gorm:"embedded"`
 	StartTime      time.Time
 	ArrivalTime    time.Time
 	BackTime       time.Time

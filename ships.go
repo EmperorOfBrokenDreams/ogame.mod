@@ -69,7 +69,7 @@ func (s ShipsInfos) HasFlyableShips() bool {
 func (s ShipsInfos) Speed(techs Researches, isCollector, isGeneral bool) int64 {
 	var minSpeed int64 = math.MaxInt64
 	for _, ship := range Ships {
-		if ship.GetID() == SolarSatelliteID {
+		if ship.GetID() == SolarSatelliteID || ship.GetID() == CrawlerID {
 			continue
 		}
 		nbr := s.ByID(ship.GetID())
@@ -270,4 +270,20 @@ func (s ShipsInfos) String() string {
 		"        Crawler: " + strconv.FormatInt(s.Crawler, 10) + "\n" +
 		"         Reaper: " + strconv.FormatInt(s.Reaper, 10) + "\n" +
 		"     Pathfinder: " + strconv.FormatInt(s.Pathfinder, 10)
+}
+
+func (s ShipsInfos) Div(divisor int64) ShipsInfos {
+	for _, ship := range Ships {
+		div := math.Floor(float64(s.ByID(ship.GetID())) / float64(divisor))
+		s.Set(ship.GetID(), int64(div))
+	}
+	return s
+}
+
+func (s ShipsInfos) Mul(multiplicator int64) ShipsInfos {
+	for _, ship := range Ships {
+		mul := math.Floor(float64(s.ByID(ship.GetID())) * float64(multiplicator))
+		s.Set(ship.GetID(), int64(mul))
+	}
+	return s
 }

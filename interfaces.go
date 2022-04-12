@@ -27,7 +27,7 @@ type Prioritizable interface {
 	Done()
 	DeleteAllMessagesFromTab(tabID int64) error
 	DeleteMessage(msgID int64) error
-	FlightTime(origin, destination Coordinate, speed Speed, ships ShipsInfos, mission MissionID) (secs, fuel int64)
+	FlightTime(origin, destination Coordinate, speed Speed, ships ShipsInfos, mission MissionID, holdingTime int64) (secs, fuel int64)
 	GalaxyInfos(galaxy, system int64, opts ...Option) (SystemInfos, error)
 	GetAlliancePageContent(url.Values) ([]byte, error)
 	GetAllResources() (map[CelestialID]Resources, error)
@@ -73,6 +73,10 @@ type Prioritizable interface {
 	SetInitiator(initiator string) Prioritizable
 	Tx(clb func(tx Prioritizable) error) error
 	UseDM(string, CelestialID) error
+	GetMessages() ([]Message, error)
+	TradeScraper(ships ShipsInfos, opts ...Option) error
+	NjaCancelFleet(fleetID FleetID) error
+	BuyItem(ref string, celestialID CelestialID) error
 
 	// Planet or Moon functions
 	Build(celestialID CelestialID, id ID, nbr int64) error
@@ -95,6 +99,7 @@ type Prioritizable interface {
 	GetTechs(celestialID CelestialID) (ResourcesBuildings, Facilities, ShipsInfos, DefensesInfos, Researches, error)
 	GetShips(CelestialID, ...Option) (ShipsInfos, error)
 	SendFleet(celestialID CelestialID, ships []Quantifiable, speed Speed, where Coordinate, mission MissionID, resources Resources, holdingTime, unionID int64) (Fleet, error)
+	NinjaSendFleet(celestialID CelestialID, ships []Quantifiable, speed Speed, where Coordinate, mission MissionID, resources Resources, holdingTime, unionID int64, ensure bool) (Fleet, error)
 	TearDown(celestialID CelestialID, id ID) error
 
 	// Planet specific functions
@@ -137,7 +142,7 @@ type Wrapper interface {
 	GetLanguage() string
 	GetNbSystems() int64
 	GetPublicIP() (string, error)
-	GetResearchSpeed() int64
+	GetResearchSpeed() float64
 	GetServer() Server
 	GetServerData() ServerData
 	GetSession() string
@@ -280,6 +285,7 @@ type Extractor interface {
 	ExtractResourcesBuildings(pageHTML []byte) (ResourcesBuildings, error)
 	ExtractExpeditionMessages(pageHTML []byte, location *time.Location) ([]ExpeditionMessage, int64, error)
 	ExtractMarketplaceMessages(pageHTML []byte, location *time.Location) ([]MarketplaceMessage, int64, error)
+	ExtractMessages(pageHTML []byte, location *time.Location) ([]Message, int64, error)
 	ExtractDefense(pageHTML []byte) (DefensesInfos, error)
 	ExtractShips(pageHTML []byte) (ShipsInfos, error)
 	ExtractFacilities(pageHTML []byte) (Facilities, error)
@@ -289,6 +295,7 @@ type Extractor interface {
 	ExtractFleet1Ships(pageHTML []byte) ShipsInfos
 	ExtractEspionageReportMessageIDs(pageHTML []byte) ([]EspionageReportSummary, int64)
 	ExtractCombatReportMessagesSummary(pageHTML []byte) ([]CombatReportSummary, int64)
+	ExtractFullCombatReport(pageHTML []byte) (FullCombatReport, error)
 	ExtractEspionageReport(pageHTML []byte, location *time.Location) (EspionageReport, error)
 	ExtractResourcesProductions(pageHTML []byte) (Resources, error)
 	ExtractPreferences(pageHTML []byte) Preferences
@@ -322,11 +329,13 @@ type Extractor interface {
 	ExtractOfferOfTheDayFromDoc(doc *goquery.Document) (price int64, importToken string, planetResources PlanetResources, multiplier Multiplier, err error)
 	ExtractProductionFromDoc(doc *goquery.Document) ([]Quantifiable, error)
 	ExtractOverviewProductionFromDoc(doc *goquery.Document) ([]Quantifiable, error)
+	ExtractFleet1ResearchesFromDoc(doc *goquery.Document) (r Researches)
 	ExtractFleet1ShipsFromDoc(doc *goquery.Document) (s ShipsInfos)
 	ExtractEspionageReportMessageIDsFromDoc(doc *goquery.Document) ([]EspionageReportSummary, int64)
 	ExtractCombatReportMessagesFromDoc(doc *goquery.Document) ([]CombatReportSummary, int64)
 	ExtractExpeditionMessagesFromDoc(doc *goquery.Document, location *time.Location) ([]ExpeditionMessage, int64, error)
 	ExtractEspionageReportFromDoc(doc *goquery.Document, location *time.Location) (EspionageReport, error)
+	ExtractMessagesFromDoc(doc *goquery.Document, location *time.Location) ([]Message, int64, error)
 	ExtractResourcesProductionsFromDoc(doc *goquery.Document) (Resources, error)
 	ExtractPreferencesFromDoc(doc *goquery.Document) Preferences
 	ExtractResourceSettingsFromDoc(doc *goquery.Document) (ResourceSettings, error)

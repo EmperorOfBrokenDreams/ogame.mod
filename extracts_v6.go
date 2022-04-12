@@ -24,7 +24,7 @@ func extractIsInVacationFromDocV6(doc *goquery.Document) bool {
 	}
 	u, _ := url.Parse(href)
 	q := u.Query()
-	if q.Get("page") == "preferences" && q.Get("selectedTab") == "3" && q.Get("openGroup") == "0" {
+	if q.Get("component") == "preferences" && q.Get("selectedTab") == "3" && q.Get("openGroup") == "0" {
 		return true
 	}
 	return false
@@ -418,11 +418,12 @@ func extractAttacksFromDocV6(doc *goquery.Document, clock clockwork.Clock) ([]At
 		classes, _ := s.Attr("class")
 		partner := strings.Contains(classes, "partnerInfo")
 
-		td := s.Find("td.countDown")
-		isHostile := td.HasClass("hostile") || td.Find("span.hostile").Size() > 0
-		if !isHostile {
-			return
-		}
+		// Check Attacks later to get also Friendly Attacks on own Celestials
+		//td := s.Find("td.countDown")
+		// isHostile := td.HasClass("hostile") || td.Find("span.hostile").Size() > 0
+		// if !isHostile {
+		// 	return
+		// }
 		missionTypeInt, _ := strconv.ParseInt(s.AttrOr("data-mission-type", ""), 10, 64)
 		arrivalTimeInt, _ := strconv.ParseInt(s.AttrOr("data-arrival-time", ""), 10, 64)
 		missionType := MissionID(missionTypeInt)
@@ -615,6 +616,10 @@ func extractOverviewProductionFromDocV6(doc *goquery.Document) ([]Quantifiable, 
 	return res, nil
 }
 
+func extractFleet1ResearchesFromDocV6(doc *goquery.Document) (s Researches) {
+	return
+}
+
 func extractFleet1ShipsFromDocV6(doc *goquery.Document) (s ShipsInfos) {
 	onclick := doc.Find("a#sendall").AttrOr("onclick", "")
 	matches := regexp.MustCompile(`setMaxIntInput\("form\[name=shipsChosen]", (.+)\); checkShips`).FindStringSubmatch(onclick)
@@ -712,7 +717,6 @@ func extractCombatReportMessagesFromDocV6(doc *goquery.Document) ([]CombatReport
 				if report.Origin.Equal(report.Destination) {
 					report.Origin = nil
 				}
-
 				msgs = append(msgs, report)
 			}
 		}
@@ -1079,6 +1083,22 @@ func extractFleetsFromEventListFromDocV6(doc *goquery.Document) []Fleet {
 	doc.Find("tr.eventFleet").Each(func(i int, s *goquery.Selection) {
 		fleet := Fleet{}
 
+		fleetID, _ := strconv.ParseInt(strings.ReplaceAll(s.AttrOr("id", ""), "eventRow-", ""), 10, 64)
+		fleet.ID = FleetID(fleetID)
+		mission, _ := strconv.ParseInt(s.AttrOr("data-mission-type", ""), 10, 64)
+		fleet.Mission = MissionID(mission)
+		returnFlight, _ := strconv.ParseBool(s.AttrOr("data-return-flight", ""))
+		fleet.ReturnFlight = returnFlight
+
+		arrivalUnix, _ := strconv.ParseInt(s.AttrOr("data-arrival-time", ""), 10, 64)
+		fleet.ArrivalTime = time.Unix(arrivalUnix, 0)
+		serverTime, err := extractServerTimeFromDocV6(doc)
+		if err != nil {
+			fleet.ArriveIn = arrivalUnix - time.Now().Unix()
+		} else {
+			fleet.ArriveIn = arrivalUnix - serverTime.Unix()
+		}
+
 		movement := s.Find("td span.tooltip").AttrOr("title", "")
 		if movement == "" {
 			return
@@ -1086,6 +1106,7 @@ func extractFleetsFromEventListFromDocV6(doc *goquery.Document) []Fleet {
 
 		root, _ := html.Parse(strings.NewReader(movement))
 		doc2 := goquery.NewDocumentFromNode(root)
+		res := Resources{}
 		doc2.Find("tr").Each(func(i int, s *goquery.Selection) {
 			if i == 0 {
 				return
@@ -1096,14 +1117,30 @@ func extractFleetsFromEventListFromDocV6(doc *goquery.Document) []Fleet {
 				fleet.Ships.Set(ShipName2ID(name), nbr)
 			}
 		})
-		fleet.Origin = extractCoordV6(doc.Find("td.coordsOrigin").Text())
-		fleet.Destination = extractCoordV6(doc.Find("td.destCoords").Text())
 
-		res := Resources{}
-		trs := doc2.Find("tr")
-		res.Metal = ParseInt(trs.Eq(trs.Size() - 3).Find("td").Eq(1).Text())
-		res.Crystal = ParseInt(trs.Eq(trs.Size() - 2).Find("td").Eq(1).Text())
-		res.Deuterium = ParseInt(trs.Eq(trs.Size() - 1).Find("td").Eq(1).Text())
+		if doc2.Find("tr th").Size() == 2 {
+			trs := doc2.Find("tr")
+			res.Metal = ParseInt(trs.Eq(trs.Size() - 3).Find("td").Eq(1).Text())
+			res.Crystal = ParseInt(trs.Eq(trs.Size() - 2).Find("td").Eq(1).Text())
+			res.Deuterium = ParseInt(trs.Eq(trs.Size() - 1).Find("td").Eq(1).Text())
+			fleet.Resources = res
+		}
+
+		fleet.Origin = extractCoordV6(doc.Find("td.coordsOrigin").Text())
+		if doc.Find("td.originFleet figure").HasClass("moon") {
+			fleet.Origin.Type = MoonType
+		}
+		if doc.Find("td.originFleet figure").HasClass("planet") {
+			fleet.Origin.Type = PlanetType
+		}
+		fleet.Destination = extractCoordV6(doc.Find("td.destCoords").Text())
+		doc.Find("td.destFleet figure").HasClass("moon")
+		if doc.Find("td.destFleet figure").HasClass("moon") {
+			fleet.Destination.Type = MoonType
+		}
+		if doc.Find("td.destFleet figure").HasClass("planet") {
+			fleet.Destination.Type = PlanetType
+		}
 
 		tmp = append(tmp, Tmp{fleet: fleet, res: res})
 	})
@@ -1677,6 +1714,13 @@ func extractGalaxyInfosV6(pageHTML []byte, botPlayerName string, botPlayerID, bo
 	if err := json.Unmarshal(pageHTML, &tmp); err != nil {
 		return res, ErrNotLogged
 	}
+
+	overlayTokenRgx := regexp.MustCompile(`data-overlay-token="([^"]+)"`)
+	m := overlayTokenRgx.FindStringSubmatch(tmp.Galaxy)
+	if len(m) == 2 {
+		res.OverlayToken = m[1]
+	}
+
 	doc, _ := goquery.NewDocumentFromReader(strings.NewReader(tmp.Galaxy))
 	res.galaxy = ParseInt(doc.Find("table").AttrOr("data-galaxy", "0"))
 	res.system = ParseInt(doc.Find("table").AttrOr("data-system", "0"))
@@ -1723,6 +1767,16 @@ func extractGalaxyInfosV6(pageHTML []byte, botPlayerName string, botPlayerID, bo
 				planetInfos.Alliance.ID, _ = strconv.ParseInt(strings.TrimPrefix(longID, "alliance"), 10, 64)
 				planetInfos.Alliance.Rank, _ = strconv.ParseInt(allianceSpan.Find("ul.ListLinks li").First().Find("a").Text(), 10, 64)
 				planetInfos.Alliance.Member = ParseInt(prefixedNumRgx.FindStringSubmatch(allianceSpan.Find("ul.ListLinks li").Eq(1).Text())[1])
+				planetInfos.Alliance.AllianceClass = NoAllianceClass
+				if allianceSpan.Find("ul.ListLinks li").Find("span").HasClass("trader") {
+					planetInfos.Alliance.AllianceClass = Trader
+				}
+				if allianceSpan.Find("ul.ListLinks li").Find("span").HasClass("explorer") {
+					planetInfos.Alliance.AllianceClass = Researcher
+				}
+				if allianceSpan.Find("ul.ListLinks li").Find("span").HasClass("warrior") {
+					planetInfos.Alliance.AllianceClass = Warrior
+				}
 			}
 
 			if len(prefixedNumRgx.FindStringSubmatch(metalTxt)) > 0 {
@@ -1990,7 +2044,7 @@ func extractUniverseSpeedV6(pageHTML []byte) int64 {
 	return universeSpeed
 }
 
-var temperatureRgxStr = `([-\d]+).+C\s*(?:bis|-tól|para|to|à|至|a|～|do|ile|tot|og|до|až|til|la|έως|:sta)\s*([-\d]+).+C`
+var temperatureRgxStr = `([-\d]+).+C\s*(?:bis|-tól|para|to|à|至|a|～|do|ile|tot|og|до|až|til|till|la|έως|:sta)\s*([-\d]+).+C`
 var temperatureRgx = regexp.MustCompile(temperatureRgxStr)
 var diameterRgxStr = `([\d.,]+)(?i)(?:km|км|公里|χμ)`
 var diameterRgx = regexp.MustCompile(diameterRgxStr)

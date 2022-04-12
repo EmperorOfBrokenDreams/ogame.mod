@@ -19,6 +19,7 @@ type SystemInfos struct {
 		Darkmatter  int64
 		HasAsteroid bool
 	}
+	OverlayToken string
 }
 
 // Galaxy returns galaxy info
@@ -77,10 +78,11 @@ type MoonInfos struct {
 
 // AllianceInfos public information of an alliance in the galaxy page
 type AllianceInfos struct {
-	ID     int64
-	Name   string
-	Rank   int64
-	Member int64
+	ID            int64
+	Name          string
+	Rank          int64
+	Member        int64
+	AllianceClass AllianceClass
 }
 
 // PlanetInfos public information of a planet in the galaxy page

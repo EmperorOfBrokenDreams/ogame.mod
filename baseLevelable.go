@@ -14,7 +14,7 @@ type BaseLevelable struct {
 // GetPrice returns the price to build the given level
 func (b BaseLevelable) GetPrice(level int64) Resources {
 	tmp := func(baseCost int64, increaseFactor float64, level int64) int64 {
-		return int64(float64(baseCost) * math.Pow(increaseFactor, float64(level-1)))
+		return int64(math.Ceil(float64(baseCost) * math.Pow(increaseFactor, float64(level-1))))
 	}
 	return Resources{
 		Metal:     tmp(b.BaseCost.Metal, b.IncreaseFactor, level),
