@@ -1,6 +1,6 @@
 package ogb
 
-import "github.com/faunX/ogame"
+import "github.com/0xE232FE/ogame.mod"
 
 type SentFleet struct {
 	OriginID          ogame.CelestialID

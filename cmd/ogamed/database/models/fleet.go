@@ -1,7 +1,7 @@
 package models
 
 import (
-	"github.com/faunX/ogame"
+	"github.com/0xE232FE/ogame.mod"
 	"gorm.io/gorm"
 )
 

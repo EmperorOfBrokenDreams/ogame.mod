@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/faunX/ogame"
+	"github.com/0xE232FE/ogame.mod"
 )
 
 type Localization struct {

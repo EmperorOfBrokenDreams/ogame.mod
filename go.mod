@@ -1,4 +1,4 @@
-module github.com/faunX/ogame
+module github.com/0xE232FE/ogame.mod
 
 go 1.16
 

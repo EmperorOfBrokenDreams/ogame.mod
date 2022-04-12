@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/faunX/ogame"
+	"github.com/0xE232FE/ogame.mod"
 )
 
 //https://s109-no.ogame.gameforge.com/game/index.php?page=ingame&component=rewarding&tab=rewards&action=fetchRewards&ajax=1&asJson=1&tier=2&token=20d1dd0a7804a0f4ae24e5dc7e190d0d

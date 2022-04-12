@@ -1,6 +1,6 @@
 package models
 
-import "github.com/faunX/ogame"
+import "github.com/0xE232FE/ogame.mod"
 
 type Test struct {
 	ID             uint

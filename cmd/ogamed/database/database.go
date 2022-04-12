@@ -1,7 +1,7 @@
 package database
 
 import (
-	"github.com/faunX/ogame/cmd/ogamed/database/models"
+	"github.com/0xE232FE/ogame.mod/cmd/ogamed/database/models"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"text/template"
 
-	"github.com/faunX/ogame/cmd/ogamed/webserver/bindata"
+	"github.com/0xE232FE/ogame.mod/cmd/ogamed/webserver/bindata"
 	"github.com/labstack/echo"
 )
 

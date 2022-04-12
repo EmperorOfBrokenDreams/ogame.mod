@@ -17,8 +17,8 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/dustin/go-humanize"
-	"github.com/faunX/ogame"
-	"github.com/faunX/ogame/cmd/ogamed/ogb"
+	"github.com/0xE232FE/ogame.mod"
+	"github.com/0xE232FE/ogame.mod/cmd/ogamed/ogb"
 	"github.com/labstack/echo"
 	"golang.org/x/net/html"
 )

@@ -21,9 +21,9 @@ import (
 
 	//badger "github.com/dgraph-io/badger/v3"
 
-	"github.com/faunX/ogame"
-	"github.com/faunX/ogame/cmd/ogamed/ogb"
-	"github.com/faunX/ogame/cmd/ogamed/skv"
+	"github.com/0xE232FE/ogame.mod"
+	"github.com/0xE232FE/ogame.mod/cmd/ogamed/ogb"
+	"github.com/0xE232FE/ogame.mod/cmd/ogamed/skv"
 	"github.com/labstack/echo"
 	"github.com/mattn/anko/env"
 	"github.com/mattn/anko/vm"

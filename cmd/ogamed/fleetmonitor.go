@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/faunX/ogame"
+	"github.com/0xE232FE/ogame.mod"
 )
 
 func Monitor(bot *ogame.OGame, fleetUpdate chan bool) {

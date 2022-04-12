@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/faunX/ogame"
+	"github.com/0xE232FE/ogame.mod"
 )
 
 func Start() {
