@@ -4,16 +4,18 @@ on:
   create:
     tags:
       - v*
+  push:
+    branches: [ ogame-scripts ]
 
 jobs:
 
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Set up Go
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@v3
       with:
         go-version: 1.17
     
@@ -22,12 +24,12 @@ jobs:
       run: |
         for GOOSV in darwin; do
           for GOARCHV in amd64; do
-            env GOOS=$GOOSV GOARCH=$GOARCHV CGO_ENABLED=0 go build -v -a -ldflags '-s -w' -o ./bin/ogame-bot-$GOOSV-$GOARCHV
+            #env GOOS=$GOOSV GOARCH=$GOARCHV CGO_ENABLED=0 go build -v -a -ldflags '-s -w' -o ./bin/ogame-bot-$GOOSV-$GOARCHV
           done
         done
         for GOOSV in linux; do
           for GOARCHV in amd64 arm arm64; do
-            env GOOS=$GOOSV GOARCH=$GOARCHV CGO_ENABLED=0 go build -v -a -ldflags '-s -w' -o ./bin/ogame-bot-$GOOSV-$GOARCHV
+            #env GOOS=$GOOSV GOARCH=$GOARCHV CGO_ENABLED=0 go build -v -a -ldflags '-s -w' -o ./bin/ogame-bot-$GOOSV-$GOARCHV
           done
         done
         for GOOSV in windows; do
