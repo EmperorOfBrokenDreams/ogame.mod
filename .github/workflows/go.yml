@@ -6,8 +6,6 @@ on:
       - v*
   push:
     branches: [ ogame-scripts ]
-  pull:
-    branches: [ ogame-scripts ]
 
 jobs:
 
