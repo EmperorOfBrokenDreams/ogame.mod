@@ -10,11 +10,11 @@ type Item struct {
 	Rarity         string // common
 	Amount         int64
 	AmountFree     int64
-	AmountBought   int64
+	AmountBought   int64 `json:"amount_bought"`
 	canBeActivated bool
 	//Category                []string
 	//Currency                string // dm
-	//Costs                   int64
+	Costs int64 `json:"costs"`
 	//IsReduced               bool
 	//buyable                 bool
 	//canBeBoughtAndActivated bool

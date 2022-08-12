@@ -1,7 +1,7 @@
-project_name: ogamed
+project_name: ogamed2
 release:
   github:
-    owner: alaingilbert
+    owner: faunX
     name: ogame
   name_template: '{{.Tag}}'
 builds:
@@ -11,13 +11,15 @@ builds:
   - darwin
   goarch:
   - amd64
+  - arm
+  - arm64
   - "386"
   goarm:
   - "6"
   ignore:
   - goos: darwin
     goarch: 386
-  main: ./cmd/ogamed/main.go
+  main: ./cmd/ogamed2/main.go
   ldflags: -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
   binary: ogamed
 archives:

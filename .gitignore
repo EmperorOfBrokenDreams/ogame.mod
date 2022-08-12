@@ -2,9 +2,13 @@
 .idea
 dist
 cmd/scripts/bindata
-cmd/bot*
 *.cover
 cover.out
 vendor
 /ogame.code-workspace
 cmd/ogamed/bin
+*.db
+/captcha
+/api
+/cookies
+cmd/bot*

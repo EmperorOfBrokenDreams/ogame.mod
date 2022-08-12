@@ -10,7 +10,7 @@ type Coordinate struct {
 	Galaxy   int64
 	System   int64
 	Position int64
-	Type     CelestialType
+	Type     CelestialType `gorm:"type:uint"`
 }
 
 func (c Coordinate) String() string {

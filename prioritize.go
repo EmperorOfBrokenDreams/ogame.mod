@@ -551,13 +551,14 @@ func (b *Prioritize) GetResourcesProductionsLight(resBuildings ResourcesBuilding
 }
 
 // FlightTime calculate flight time and fuel needed
-func (b *Prioritize) FlightTime(origin, destination Coordinate, speed Speed, ships ShipsInfos, missionID MissionID) (secs, fuel int64) {
+func (b *Prioritize) FlightTime(origin, destination Coordinate, speed Speed, ships ShipsInfos, missionID MissionID, holdingTime int64) (secs, fuel int64) {
 	b.begin("FlightTime")
 	defer b.done()
 	researches := b.bot.getCachedResearch()
 	return CalcFlightTime(origin, destination, b.bot.serverData.Galaxies, b.bot.serverData.Systems,
 		b.bot.serverData.DonutGalaxy, b.bot.serverData.DonutSystem, b.bot.serverData.GlobalDeuteriumSaveFactor,
-		float64(speed)/10, GetFleetSpeedForMission(b.bot.serverData, missionID), ships, researches, b.bot.characterClass)
+
+		float64(speed)/10, GetFleetSpeedForMission(b.bot.serverData, missionID), ships, researches, b.bot.characterClass, holdingTime)
 }
 
 // Phalanx scan a coordinate from a moon to get fleets information
@@ -708,4 +709,40 @@ func (b *Prioritize) OfferBuyMarketplace(itemID interface{}, quantity, priceType
 	b.begin("OfferBuyMarketplace")
 	defer b.done()
 	return b.bot.offerMarketplace(3, itemID, quantity, priceType, price, priceRange, celestialID)
+}
+
+// GetMessages ...
+func (b *Prioritize) GetMessages() ([]Message, error) {
+	b.begin("GetMessages")
+	defer b.done()
+	return b.bot.getMessages()
+}
+
+// TradeScraper ...
+func (b *Prioritize) TradeScraper(ships ShipsInfos, opts ...Option) error {
+	b.begin("TradeScraper")
+	defer b.done()
+	return b.bot.tradeScraper(ships, opts...)
+}
+
+// NinjaSendFleet ...
+func (b *Prioritize) NinjaSendFleet(celestialID CelestialID, ships []Quantifiable, speed Speed, where Coordinate,
+	mission MissionID, resources Resources, holdingTime, unionID int64, ensure bool) (Fleet, error) {
+	b.begin("NinjaSendFleet")
+	defer b.done()
+	return b.bot.ninjaSendFleet(celestialID, ships, speed, where, mission, resources, holdingTime, unionID, ensure)
+}
+
+// NjaCancelFleet ...
+func (b *Prioritize) NjaCancelFleet(fleetID FleetID) error {
+	b.begin("NjaCancelFleet")
+	defer b.done()
+	return b.bot.njaCancelFleet(fleetID)
+}
+
+// BuyItem ...
+func (b *Prioritize) BuyItem(ref string, celestialID CelestialID) error {
+	b.begin("BuyItem")
+	defer b.done()
+	return b.bot.buyItem(ref, celestialID)
 }

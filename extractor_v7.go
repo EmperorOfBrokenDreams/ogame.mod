@@ -46,6 +46,12 @@ func (e ExtractorV7) ExtractMarketplaceMessages(pageHTML []byte, location *time.
 	return e.ExtractMarketplaceMessagesFromDoc(doc, location)
 }
 
+// ExtractMessages ...
+func (e ExtractorV7) ExtractMessages(pageHTML []byte, location *time.Location) ([]Message, int64, error) {
+	doc, _ := goquery.NewDocumentFromReader(bytes.NewReader(pageHTML))
+	return e.ExtractMessagesFromDoc(doc, location)
+}
+
 // ExtractDefense ...
 func (e ExtractorV7) ExtractDefense(pageHTML []byte) (DefensesInfos, error) {
 	doc, _ := goquery.NewDocumentFromReader(bytes.NewReader(pageHTML))
@@ -98,6 +104,12 @@ func (e ExtractorV7) ExtractConstructions(pageHTML []byte) (buildingID ID, build
 	return extractConstructionsV7(pageHTML, clockwork.NewRealClock())
 }
 
+// ExtractFleet1Researches ...
+func (e ExtractorV7) ExtractFleet1Researches(pageHTML []byte) Researches {
+	doc, _ := goquery.NewDocumentFromReader(bytes.NewReader(pageHTML))
+	return e.ExtractFleet1ResearchesFromDoc(doc)
+}
+
 // ExtractFleet1Ships ...
 func (e ExtractorV7) ExtractFleet1Ships(pageHTML []byte) ShipsInfos {
 	doc, _ := goquery.NewDocumentFromReader(bytes.NewReader(pageHTML))
@@ -145,6 +157,11 @@ func (e ExtractorV7) ExtractOverviewProductionFromDoc(doc *goquery.Document) ([]
 	return extractOverviewProductionFromDocV7(doc)
 }
 
+// ExtractFleet1ResearachesFromDoc ...
+func (e ExtractorV7) ExtractFleet1ResearchesFromDoc(doc *goquery.Document) (r Researches) {
+	return extractFleet1ResearchesFromDocV7(doc)
+}
+
 // ExtractFleet1ShipsFromDoc ...
 func (e ExtractorV7) ExtractFleet1ShipsFromDoc(doc *goquery.Document) (s ShipsInfos) {
 	return extractFleet1ShipsFromDocV7(doc)
@@ -163,6 +180,11 @@ func (e ExtractorV7) ExtractDefenseFromDoc(doc *goquery.Document) (DefensesInfos
 // ExtractExpeditionMessagesFromDoc ...
 func (e ExtractorV7) ExtractExpeditionMessagesFromDoc(doc *goquery.Document, location *time.Location) ([]ExpeditionMessage, int64, error) {
 	return extractExpeditionMessagesFromDocV7(doc, location)
+}
+
+// ExtractMessagesFromDoc ...
+func (e ExtractorV7) ExtractMessagesFromDoc(doc *goquery.Document, location *time.Location) ([]Message, int64, error) {
+	return extractMessagesFromDocV7(doc, location)
 }
 
 // ExtractMarketplaceMessagesFromDoc ...

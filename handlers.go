@@ -5,11 +5,12 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/labstack/echo"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/labstack/echo"
 )
 
 // APIResp ...
@@ -956,9 +957,23 @@ func GetAlliancePageContentHandler(c echo.Context) error {
 	return c.HTML(http.StatusOK, string(pageHTML))
 }
 
-func replaceHostname(bot *OGame, html []byte) []byte {
+func ReplaceHostname(bot *OGame, html []byte, r *http.Request) []byte {
+	return replaceHostname(bot, html, r)
+}
+
+func replaceHostname(bot *OGame, html []byte, r *http.Request) []byte {
+	requestHostname := bot.apiNewHostname
+	if bot.apiNewHostname == "" {
+		rURL := url.URL{}
+		rURL.Host = r.Host
+		rURL.Scheme = "http"
+		if r.TLS != nil {
+			rURL.Scheme = "https"
+		}
+		requestHostname = rURL.String()
+	}
 	serverURLBytes := []byte(bot.serverURL)
-	apiNewHostnameBytes := []byte(bot.apiNewHostname)
+	apiNewHostnameBytes := []byte(requestHostname)
 	escapedServerURL := bytes.Replace(serverURLBytes, []byte("/"), []byte(`\/`), -1)
 	doubleEscapedServerURL := bytes.Replace(serverURLBytes, []byte("/"), []byte("\\\\\\/"), -1)
 	escapedAPINewHostname := bytes.Replace(apiNewHostnameBytes, []byte("/"), []byte(`\/`), -1)
@@ -967,6 +982,10 @@ func replaceHostname(bot *OGame, html []byte) []byte {
 	html = bytes.Replace(html, escapedServerURL, escapedAPINewHostname, -1)
 	html = bytes.Replace(html, doubleEscapedServerURL, doubleEscapedAPINewHostname, -1)
 	return html
+}
+
+func removeCookieBanners(html []byte) []byte {
+	return []byte(strings.Replace(string(html), "<head>", "<head><style>.cookiebanner1 {display: none;}\n.cookiebanner2 {display: none;}\n.cookiebanner3 {display: none;}</style>", 1))
 }
 
 // GetStaticHandler ...
@@ -1000,7 +1019,7 @@ func GetStaticHandler(c echo.Context) error {
 	}
 
 	if strings.Contains(c.Request().URL.String(), ".xml") {
-		body = replaceHostname(bot, body)
+		body = replaceHostname(bot, body, c.Request())
 		return c.Blob(http.StatusOK, "application/xml", body)
 	}
 
@@ -1024,7 +1043,12 @@ func GetFromGameHandler(c echo.Context) error {
 		vals = c.QueryParams()
 	}
 	pageHTML, _ := bot.GetPageContent(vals)
-	pageHTML = replaceHostname(bot, pageHTML)
+
+	pageHTML = replaceHostname(bot, pageHTML, c.Request())
+	pageHTML = removeCookieBanners(pageHTML)
+
+	pageHTML = []byte(strings.ReplaceAll(string(pageHTML), "https://consent.gameforge.com/cookiebanner.js", "xxx.js"))
+
 	return c.HTMLBlob(http.StatusOK, pageHTML)
 }
 
@@ -1037,7 +1061,8 @@ func PostToGameHandler(c echo.Context) error {
 	}
 	payload, _ := c.FormParams()
 	pageHTML, _ := bot.PostPageContent(vals, payload)
-	pageHTML = replaceHostname(bot, pageHTML)
+	pageHTML = replaceHostname(bot, pageHTML, c.Request())
+	pageHTML = []byte(strings.ReplaceAll(string(pageHTML), "https://consent.gameforge.com/cookiebanner.js", "xxx.js"))
 	return c.HTMLBlob(http.StatusOK, pageHTML)
 }
 
@@ -1351,4 +1376,135 @@ func GetCaptchaSolverHandler(c echo.Context) error {
 		}
 	}
 	return c.Redirect(http.StatusTemporaryRedirect, "/")
+}
+
+// FlightTimeHandler ...
+// curl 127.0.0.1:1234/bot/planets/123/flighttime -d 'ships=203,1&ships=204,10&speed=10&galaxy=1&system=1&type=1&position=1&mission=3&metal=1&crystal=2&deuterium=3'
+func FlightTimeHandler(c echo.Context) error {
+	bot := c.Get("bot").(*OGame)
+	planetID, err := strconv.ParseInt(c.Param("planetID"), 10, 64)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, ErrorResp(400, "invalid planet id"))
+	}
+
+	if err := c.Request().ParseForm(); err != nil {
+		return c.JSON(http.StatusBadRequest, ErrorResp(400, "invalid form"))
+	}
+
+	var ships []Quantifiable
+	where := Coordinate{Type: PlanetType}
+	mission := Transport
+	payload := Resources{}
+	speed := HundredPercent
+	var holdingTime int64
+	for key, values := range c.Request().PostForm {
+		switch key {
+		case "ships":
+			for _, s := range values {
+				a := strings.Split(s, ",")
+				shipID, err := strconv.ParseInt(a[0], 10, 64)
+				if err != nil || !IsShipID(shipID) {
+					return c.JSON(http.StatusBadRequest, ErrorResp(400, "invalid ship id "+a[0]))
+				}
+				nbr, err := strconv.ParseInt(a[1], 10, 64)
+				if err != nil || nbr < 0 {
+					return c.JSON(http.StatusBadRequest, ErrorResp(400, "invalid nbr "+a[1]))
+				}
+				ships = append(ships, Quantifiable{ID: ID(shipID), Nbr: nbr})
+			}
+		case "speed":
+			speedInt, err := strconv.ParseInt(values[0], 10, 64)
+			if err != nil || speedInt < 0 || speedInt > 10 {
+				return c.JSON(http.StatusBadRequest, ErrorResp(400, "invalid speed"))
+			}
+			speed = Speed(speedInt)
+		case "galaxy":
+			galaxy, err := strconv.ParseInt(values[0], 10, 64)
+			if err != nil {
+				return c.JSON(http.StatusBadRequest, ErrorResp(400, "invalid galaxy"))
+			}
+			where.Galaxy = galaxy
+		case "system":
+			system, err := strconv.ParseInt(values[0], 10, 64)
+			if err != nil {
+				return c.JSON(http.StatusBadRequest, ErrorResp(400, "invalid system"))
+			}
+			where.System = system
+		case "position":
+			position, err := strconv.ParseInt(values[0], 10, 64)
+			if err != nil {
+				return c.JSON(http.StatusBadRequest, ErrorResp(400, "invalid position"))
+			}
+			where.Position = position
+		case "type":
+			t, err := strconv.ParseInt(values[0], 10, 64)
+			if err != nil {
+				return c.JSON(http.StatusBadRequest, ErrorResp(400, "invalid type"))
+			}
+			where.Type = CelestialType(t)
+		case "mission":
+			missionInt, err := strconv.ParseInt(values[0], 10, 64)
+			if err != nil {
+				return c.JSON(http.StatusBadRequest, ErrorResp(400, "invalid mission"))
+			}
+			mission = MissionID(missionInt)
+		case "metal":
+			metal, err := strconv.ParseInt(values[0], 10, 64)
+			if err != nil || metal < 0 {
+				return c.JSON(http.StatusBadRequest, ErrorResp(400, "invalid metal"))
+			}
+			payload.Metal = metal
+		case "crystal":
+			crystal, err := strconv.ParseInt(values[0], 10, 64)
+			if err != nil || crystal < 0 {
+				return c.JSON(http.StatusBadRequest, ErrorResp(400, "invalid crystal"))
+			}
+			payload.Crystal = crystal
+		case "deuterium":
+			deuterium, err := strconv.ParseInt(values[0], 10, 64)
+			if err != nil || deuterium < 0 {
+				return c.JSON(http.StatusBadRequest, ErrorResp(400, "invalid deuterium"))
+			}
+			payload.Deuterium = deuterium
+		case "holdingTime":
+			holdingTime, err = strconv.ParseInt(values[0], 10, 64)
+			if err != nil {
+				return c.JSON(http.StatusBadRequest, ErrorResp(400, "invalid holdingTime"))
+			}
+		}
+	}
+
+	origin := bot.GetCachedCelestialByID(CelestialID(planetID))
+	var shipsinfo ShipsInfos
+
+	//secsCalc, fuelCalc := bot.CalcFlightTime(origin.GetCoordinate(), where, speed.Float64(), shipsinfo.FromQuantifiables(ships), mission)
+	secs, fuel := bot.FlightTime(origin.GetCoordinate(), where, speed, shipsinfo.FromQuantifiables(ships), mission, holdingTime)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, ErrorResp(500, err.Error()))
+	}
+
+	return c.JSON(http.StatusOK, SuccessResp(struct {
+		Secs int64
+		Fuel int64
+	}{
+		Secs: secs,
+		Fuel: fuel,
+	}))
+
+}
+
+// GetCaptchaSolverHandler ...
+func GetMessagesHandler(c echo.Context) error {
+	bot := c.Get("bot").(*OGame)
+	msgs, err := bot.GetMessages()
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, ErrorResp(400, err.Error()))
+	}
+	return c.JSON(http.StatusOK, SuccessResp(msgs))
+}
+
+// GetIPHandler ...
+func GetIPHandler(c echo.Context) error {
+	bot := c.Get("bot").(*OGame)
+	return c.JSON(http.StatusOK, SuccessResp(bot.GetIP()))
 }

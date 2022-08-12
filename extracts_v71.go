@@ -1,6 +1,7 @@
 package ogame
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -18,19 +19,22 @@ import (
 type resourcesRespV71 struct {
 	Resources struct {
 		Metal struct {
-			Amount  float64 `json:"amount"`
-			Storage float64 `json:"storage"`
-			Tooltip string  `json:"tooltip"`
+			Amount         float64 `json:"amount"`
+			Storage        float64 `json:"storage"`
+			BaseProduction float64 `json:"baseProduction"`
+			Tooltip        string  `json:"tooltip"`
 		} `json:"metal"`
 		Crystal struct {
-			Amount  float64 `json:"amount"`
-			Storage float64 `json:"storage"`
-			Tooltip string  `json:"tooltip"`
+			Amount         float64 `json:"amount"`
+			Storage        float64 `json:"storage"`
+			BaseProduction float64 `json:"baseProduction"`
+			Tooltip        string  `json:"tooltip"`
 		} `json:"crystal"`
 		Deuterium struct {
-			Amount  float64 `json:"amount"`
-			Storage float64 `json:"storage"`
-			Tooltip string  `json:"tooltip"`
+			Amount         float64 `json:"amount"`
+			Storage        float64 `json:"storage"`
+			BaseProduction float64 `json:"baseProduction"`
+			Tooltip        string  `json:"tooltip"`
 		} `json:"deuterium"`
 		Energy struct {
 			Amount  float64 `json:"amount"`
@@ -179,6 +183,9 @@ func extractResourcesDetailsV71(pageHTML []byte) (out ResourcesDetails, err erro
 	out.Energy.Consumption = ParseInt(energyDoc.Find("table tr").Eq(2).Find("td").Eq(0).Text())
 	out.Darkmatter.Purchased = ParseInt(darkmatterDoc.Find("table tr").Eq(1).Find("td").Eq(0).Text())
 	out.Darkmatter.Found = ParseInt(darkmatterDoc.Find("table tr").Eq(2).Find("td").Eq(0).Text())
+	out.Metal.Production = int64(res.Resources.Metal.BaseProduction*3600 + res.Techs.Num1.Production.Metal*3600)
+	out.Crystal.Production = int64(res.Resources.Crystal.BaseProduction*3600 + res.Techs.Num2.Production.Crystal*3600)
+	out.Deuterium.Production = int64(res.Resources.Deuterium.BaseProduction*3600 + res.Techs.Num3.Production.Deuterium*3600)
 	return
 }
 
@@ -1076,7 +1083,7 @@ func extractDMCostsFromDocV71(doc *goquery.Document) (DMCosts, error) {
 
 func extractBuffActivationFromDocV71(doc *goquery.Document) (token string, items []Item, err error) {
 	scriptTxt := doc.Find("script").Text()
-	r := regexp.MustCompile(`activateToken = "([^"]+)"`)
+	r := regexp.MustCompile(`token = "([^"]+)"`)
 	m := r.FindStringSubmatch(scriptTxt)
 	if len(m) != 2 {
 		err = errors.New("failed to find activate token")
@@ -1132,4 +1139,127 @@ func extractIsMobileFromDocV71(doc *goquery.Document) bool {
 		}
 	}
 	return false
+}
+
+type shipDetails struct {
+	Num202 struct {
+		Armor  float64 `json:"armor"`
+		Weapon float64 `json:"weapon"`
+		Shield float64 `json:"shield"`
+		Count  int     `json:"count"`
+	} `json:"202"`
+	Num203 struct {
+		Armor  float64 `json:"armor"`
+		Weapon float64 `json:"weapon"`
+		Shield float64 `json:"shield"`
+		Count  int     `json:"count"`
+	} `json:"203"`
+	Num204 struct {
+		Armor  float64 `json:"armor"`
+		Weapon float64 `json:"weapon"`
+		Shield float64 `json:"shield"`
+		Count  int     `json:"count"`
+	} `json:"204"`
+	Num205 struct {
+		Armor  float64 `json:"armor"`
+		Weapon float64 `json:"weapon"`
+		Shield float64 `json:"shield"`
+		Count  int     `json:"count"`
+	} `json:"205"`
+	Num206 struct {
+		Armor  float64 `json:"armor"`
+		Weapon float64 `json:"weapon"`
+		Shield float64 `json:"shield"`
+		Count  int     `json:"count"`
+	} `json:"206"`
+	Num207 struct {
+		Armor  float64 `json:"armor"`
+		Weapon float64 `json:"weapon"`
+		Shield float64 `json:"shield"`
+		Count  int     `json:"count"`
+	} `json:"207"`
+	Num208 struct {
+		Armor  float64 `json:"armor"`
+		Weapon float64 `json:"weapon"`
+		Shield float64 `json:"shield"`
+		Count  int     `json:"count"`
+	} `json:"208"`
+	Num209 struct {
+		Armor  float64 `json:"armor"`
+		Weapon float64 `json:"weapon"`
+		Shield float64 `json:"shield"`
+		Count  int     `json:"count"`
+	} `json:"209"`
+	Num210 struct {
+		Armor  float64 `json:"armor"`
+		Weapon float64 `json:"weapon"`
+		Shield float64 `json:"shield"`
+		Count  int     `json:"count"`
+	} `json:"210"`
+	Num211 struct {
+		Armor  float64 `json:"armor"`
+		Weapon float64 `json:"weapon"`
+		Shield float64 `json:"shield"`
+		Count  int     `json:"count"`
+	} `json:"211"`
+	Num213 struct {
+		Armor  float64 `json:"armor"`
+		Weapon float64 `json:"weapon"`
+		Shield float64 `json:"shield"`
+		Count  int     `json:"count"`
+	} `json:"213"`
+	Num214 struct {
+		Armor  float64 `json:"armor"`
+		Weapon float64 `json:"weapon"`
+		Shield float64 `json:"shield"`
+		Count  int     `json:"count"`
+	} `json:"214"`
+	Num215 struct {
+		Armor  float64 `json:"armor"`
+		Weapon float64 `json:"weapon"`
+		Shield float64 `json:"shield"`
+		Count  int     `json:"count"`
+	} `json:"215"`
+	Num217 struct {
+		Armor  float64 `json:"armor"`
+		Weapon float64 `json:"weapon"`
+		Shield float64 `json:"shield"`
+		Count  int     `json:"count"`
+	} `json:"217"`
+	Num218 struct {
+		Armor  float64 `json:"armor"`
+		Weapon float64 `json:"weapon"`
+		Shield float64 `json:"shield"`
+		Count  int     `json:"count"`
+	} `json:"218"`
+	Num219 struct {
+		Armor  float64 `json:"armor"`
+		Weapon float64 `json:"weapon"`
+		Shield float64 `json:"shield"`
+		Count  int     `json:"count"`
+	} `json:"219"`
+}
+
+type FullCombatReport struct {
+	JSON string
+}
+
+func extractFullCombatReportV71(pageHTML []byte) (out FullCombatReport, err error) {
+	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(pageHTML))
+	scriptNode := doc.Find("script").Eq(0).Text()
+	r := regexp.MustCompile(`var combatData = jQuery.parseJSON\('\s?([^;]+)'\);`)
+	m := r.FindStringSubmatch(scriptNode)
+	if len(m) < 2 {
+		return out, errors.New("Index out of range")
+	}
+	node := m[1]
+
+	out.JSON = node
+
+	// err = json.Unmarshal([]byte(node), &out)
+	// if err != nil {
+	// 	return out, err
+	// }
+
+	return out, nil
 }

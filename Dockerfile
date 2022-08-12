@@ -30,4 +30,4 @@ RUN go mod vendor
 
 EXPOSE 8080
 
-CMD ["go", "run", "./cmd/ogamed/main.go"]
+CMD ["go", "run", "./cmd/ogamed2/main.go"]

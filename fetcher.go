@@ -32,6 +32,7 @@ const (
 	BuddiesPage          = "buddies"
 	MessagesPage         = "messages"
 	ChatPage             = "chat"
+	RewardingPage        = "rewarding"
 
 	// ajax pages
 	FetchEventboxAjaxPage      = "fetchEventbox"
@@ -57,6 +58,7 @@ const (
 	BuffActivationAjaxPage     = "buffActivation"
 	AuctioneerAjaxPage         = "auctioneer"
 	HighscoreContentAjaxPage   = "highscoreContent"
+	FetchRewardsAjaxPage       = "fetchRewards"
 )
 
 func (b *OGame) getPage(page string, celestialID CelestialID, opts ...Option) ([]byte, error) {

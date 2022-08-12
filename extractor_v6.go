@@ -34,6 +34,16 @@ func (e ExtractorV6) ExtractTechs(pageHTML []byte) (ResourcesBuildings, Faciliti
 	panic("implement me")
 }
 
+// ExtractTechs ...
+func (e ExtractorV6) ExtractFullCombatReport(pageHTML []byte) (FullCombatReport, error) {
+	panic("implement me")
+}
+
+// ExtractFleet1Ships ...
+func (e ExtractorV6) ExtractFleet1Researches(pageHTML []byte) Researches {
+	panic("implement me")
+}
+
 // ExtractDestroyRockets ...
 func (e ExtractorV6) ExtractDestroyRockets(pageHTML []byte) (abm, ipm int64, token string, err error) {
 	panic("implement me")
@@ -56,6 +66,16 @@ func (e ExtractorV6) ExtractExpeditionMessages(pageHTML []byte, location *time.L
 
 // ExtractExpeditionMessagesFromDoc ...
 func (e ExtractorV6) ExtractExpeditionMessagesFromDoc(doc *goquery.Document, location *time.Location) ([]ExpeditionMessage, int64, error) {
+	panic("implement me")
+}
+
+// ExtractMessages ...
+func (e ExtractorV6) ExtractMessages(pageHTML []byte, location *time.Location) ([]Message, int64, error) {
+	panic("implement me")
+}
+
+// ExtractMessagesFromDoc ...
+func (e ExtractorV6) ExtractMessagesFromDoc(doc *goquery.Document, location *time.Location) ([]Message, int64, error) {
 	panic("implement me")
 }
 
@@ -468,6 +488,11 @@ func (e ExtractorV6) ExtractProductionFromDoc(doc *goquery.Document) ([]Quantifi
 // ExtractOverviewProductionFromDoc extracts ships/defenses (partial) production from the overview page
 func (e ExtractorV6) ExtractOverviewProductionFromDoc(doc *goquery.Document) ([]Quantifiable, error) {
 	return extractOverviewProductionFromDocV6(doc)
+}
+
+// ExtractFleet1ShipsFromDoc ...
+func (e ExtractorV6) ExtractFleet1ResearchesFromDoc(doc *goquery.Document) (r Researches) {
+	return extractFleet1ResearchesFromDocV6(doc)
 }
 
 // ExtractFleet1ShipsFromDoc ...

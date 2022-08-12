@@ -200,7 +200,7 @@ func (f *FleetBuilder) FlightTime() (secs, fuel int64) {
 			ships, _ = f.b.GetShips(f.origin.GetID())
 		}
 	}
-	return f.b.FlightTime(f.origin.GetCoordinate(), f.destination, f.speed, ships, f.mission)
+	return f.b.FlightTime(f.origin.GetCoordinate(), f.destination, f.speed, ships, f.mission, f.holdingTime)
 }
 
 func (f *FleetBuilder) sendNow(tx Prioritizable) error {
@@ -218,7 +218,7 @@ func (f *FleetBuilder) sendNow(tx Prioritizable) error {
 	var planetResources Resources
 	if f.minimumDeuterium > 0 {
 		planetResources, _ = tx.GetResources(f.origin.GetID())
-		_, fuel = tx.FlightTime(f.origin.GetCoordinate(), f.destination, f.speed, f.ships, f.mission)
+		_, fuel = tx.FlightTime(f.origin.GetCoordinate(), f.destination, f.speed, f.ships, f.mission, f.holdingTime)
 	}
 
 	if f.minimumDeuterium > 0 && f.resources.Deuterium > 0 {
@@ -252,7 +252,6 @@ func (f *FleetBuilder) sendNow(tx Prioritizable) error {
 			payload.Metal = MinInt(cargoCapacity, planetResources.Metal)
 		}
 	}
-
 	f.fleet, f.err = tx.EnsureFleet(f.origin.GetID(), f.ships.ToQuantifiables(), f.speed, f.destination, f.mission, payload, f.holdingTime, f.unionID)
 	return f.err
 }

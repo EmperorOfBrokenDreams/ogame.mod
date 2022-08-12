@@ -67,6 +67,18 @@ var (
 	PlasmaTechnology             = newPlasmaTechnology()
 	ShieldingTechnology          = newShieldingTechnology()
 	WeaponsTechnology            = newWeaponsTechnology()
+	ResidentialSector            = newResidentialSector() // Lifeform
+	BiosphereFarm                = newBiosphereFarm()
+	ResearchCentre               = newResearchCentre()
+	AcademyOfSciences            = newAcademyOfSciences()
+	NeuroCalibrationCentre       = newNeuroCalibrationCentre()
+	HighEnergySmelting           = newHighEnergySmelting()
+	FoodSilo                     = newFoodSilo()
+	FusionPoweredProduction      = newFusionPoweredProduction()
+	Skyscraper                   = newSkyscraper()
+	BiotechLab                   = newBiotechLab()
+	Metropolis                   = newMetropolis()
+	PlanetaryShield              = newPlanetaryShield()
 )
 
 // ObjsStruct structure containing all possible ogame objects
@@ -428,6 +440,19 @@ var PlanetBuildings = []Building{
 	NaniteFactory,
 	Terraformer,
 	SpaceDock,
+	// lfBuildings
+	// ResidentialSector,
+	// BiosphereFarm,
+	// ResearchCentre,
+	// AcademyOfSciences,
+	// NeuroCalibrationCentre,
+	// HighEnergySmelting,
+	// FoodSilo,
+	// FusionPoweredProduction,
+	// Skyscraper,
+	// BiotechLab,
+	// Metropolis,
+	// PlanetaryShield,
 }
 
 // MoonBuildings arrays of moon specific buildings

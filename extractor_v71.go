@@ -209,3 +209,8 @@ func (e ExtractorV71) ExtractIsMobile(pageHTML []byte) bool {
 func (e ExtractorV71) ExtractIsMobileFromDoc(doc *goquery.Document) bool {
 	return extractIsMobileFromDocV71(doc)
 }
+
+// ExtractFullCombatReport ...
+func (e ExtractorV71) ExtractFullCombatReport(pageHTML []byte) (FullCombatReport, error) {
+	return extractFullCombatReportV71(pageHTML)
+}
