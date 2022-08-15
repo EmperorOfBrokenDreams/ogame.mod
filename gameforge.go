@@ -30,6 +30,16 @@ func (e CaptchaRequiredError) Error() string {
 	return fmt.Sprintf("captcha required, %s", e.ChallengeID)
 }
 
+type RegisterError struct{ ErrorString string }
+
+func (e *RegisterError) Error() string { return e.ErrorString }
+
+var (
+	ErrEmailInvalid    = &RegisterError{"Please enter a valid email address."}
+	ErrEmailUsed       = &RegisterError{"Failed to create new lobby, email already used."}
+	ErrPasswordInvalid = &RegisterError{"Must contain at least 10 characters including at least one upper and lowercase letter and a number."}
+)
+
 // Register a new gameforge lobby account
 func Register(client *http.Client, ctx context.Context, lobby, email, password, challengeID, lang string) error {
 	if lang == "" {
@@ -84,7 +94,13 @@ func Register(client *http.Client, ctx context.Context, lobby, email, password, 
 	if err := json.Unmarshal(by, &res); err != nil {
 		return errors.New(err.Error() + " : " + string(by))
 	}
-	if res.Error != "" {
+	if res.Error == "email_invalid" {
+		return ErrEmailInvalid
+	} else if res.Error == "email_used" {
+		return ErrEmailUsed
+	} else if res.Error == "password_invalid" {
+		return ErrPasswordInvalid
+	} else if res.Error != "" {
 		return errors.New(res.Error)
 	}
 	return nil
@@ -122,7 +138,7 @@ func RedeemCode(client *http.Client, ctx context.Context, lobby, email, password
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequest("POST", "https://"+lobby+".ogame.gameforge.com/api/token", strings.NewReader(string(jsonPayloadBytes)))
+	req, err := http.NewRequest(http.MethodPost, "https://"+lobby+".ogame.gameforge.com/api/token", strings.NewReader(string(jsonPayloadBytes)))
 	if err != nil {
 		return err
 	}
@@ -296,7 +312,7 @@ func GFLogin(client IHttpClient, ctx context.Context, lobby, username, password,
 
 func getConfiguration(client IHttpClient, ctx context.Context, lobby string) (string, string, error) {
 	ogURL := "https://" + lobby + ".ogame.gameforge.com/config/configuration.js"
-	req, err := http.NewRequest("GET", ogURL, nil)
+	req, err := http.NewRequest(http.MethodGet, ogURL, nil)
 	if err != nil {
 		return "", "", err
 	}
@@ -339,7 +355,7 @@ func postSessionsReq(gameEnvironmentID, platformGameID, username, password, otpS
 		"identity":                {username},
 		"password":                {password},
 	}
-	req, err := http.NewRequest("POST", "https://gameforge.com/api/v1/auth/thin/sessions", strings.NewReader(payload.Encode()))
+	req, err := http.NewRequest(http.MethodPost, "https://gameforge.com/api/v1/auth/thin/sessions", strings.NewReader(payload.Encode()))
 	if err != nil {
 		return nil, err
 	}
@@ -422,7 +438,8 @@ func StartCaptchaChallenge(client IHttpClient, ctx context.Context, challengeID 
 
 func SolveChallenge(client IHttpClient, ctx context.Context, challengeID string, answer int64) error {
 	challengeURL := "https://image-drop-challenge.gameforge.com/challenge/" + challengeID + "/en-GB"
-	req, _ := http.NewRequest(http.MethodPost, challengeURL, strings.NewReader(`{"answer":`+strconv.FormatInt(answer, 10)+`}`))
+	body := strings.NewReader(`{"answer":` + strconv.FormatInt(answer, 10) + `}`)
+	req, _ := http.NewRequest(http.MethodPost, challengeURL, body)
 	req.Header.Set("Content-Type", "application/json")
 	req.WithContext(ctx)
 	resp, err := client.Do(req)
