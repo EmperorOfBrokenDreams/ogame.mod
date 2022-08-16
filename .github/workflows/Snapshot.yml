@@ -2,9 +2,9 @@ name: Snapshot
 
 on:
   push:
-    branches: [ ogame-scripts ]
+    branches: [ ogame-scripts, develop-v9-scripts ]
   pull_request:
-    branches: [ ogame-scripts ]
+    branches: [ ogame-scripts, develop-v9-scripts ]
 
 jobs:
   build:
@@ -22,7 +22,7 @@ jobs:
     - name: Setup GO
       uses: actions/setup-go@v2
       with:
-        go-version: '1.17'
+        go-version: '1.19'
       
     - name: Build ogamed win64
       run: | 
