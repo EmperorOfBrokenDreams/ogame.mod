@@ -2,12 +2,15 @@ package ogame
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"math"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -1389,4 +1392,279 @@ func (b *OGame) SetPreferences() error {
 	}
 
 	return nil
+}
+
+// GetServerData gets the server data from xml api
+func GetServerDataCached(client IHttpClient, ctx context.Context, serverNumber int64, serverLang string) (ServerData, error) {
+	var serverData ServerData
+	var filename string = "./api/s" + strconv.FormatInt(serverNumber, 10) + "-" + serverLang + "-serverData.xml"
+	os.Mkdir("api", 0644)
+	if _, err := os.Stat(filename); err == nil {
+		by, err := os.ReadFile(filename)
+		if err != nil {
+			return serverData, err
+		}
+		if err := xml.Unmarshal(by, &serverData); err != nil {
+			return serverData, err
+		}
+	} else if os.IsNotExist(err) {
+		req, err := http.NewRequest(http.MethodGet, "https://s"+strconv.FormatInt(serverNumber, 10)+"-"+serverLang+".ogame.gameforge.com/api/serverData.xml", nil)
+		if err != nil {
+			return serverData, err
+		}
+		req.Header.Add("Accept-Encoding", "gzip, deflate, br")
+		req.WithContext(ctx)
+		resp, err := client.Do(req)
+		if err != nil {
+			return serverData, err
+		}
+		defer resp.Body.Close()
+		by, err := readBody(resp)
+		if err != nil {
+			return serverData, err
+		}
+		if err := xml.Unmarshal(by, &serverData); err != nil {
+			return serverData, err
+		}
+		os.WriteFile(filename, by, 0644)
+	}
+
+	return serverData, nil
+}
+
+func GetCachedServers(lobby string, client IHttpClient, ctx context.Context) ([]Server, error) {
+	var servers []Server
+	var filename string = "./api/servers.json"
+	os.Mkdir("api", 0644)
+	if _, err := os.Stat(filename); err == nil {
+		by, err := os.ReadFile(filename)
+		if err != nil {
+			return servers, err
+		}
+		if err := json.Unmarshal(by, &servers); err != nil {
+			return servers, errors.New("failed to get servers : " + err.Error() + " : " + string(by))
+		}
+	} else {
+		req, err := http.NewRequest(http.MethodGet, "https://"+lobby+".ogame.gameforge.com/api/servers", nil)
+		if err != nil {
+			return servers, err
+		}
+		req.Header.Add("Accept-Encoding", "gzip, deflate, br")
+		req.WithContext(ctx)
+		resp, err := client.Do(req)
+		if err != nil {
+			return servers, err
+		}
+		defer resp.Body.Close()
+		by, err := readBody(resp)
+		if err != nil {
+			return servers, err
+		}
+		if err := json.Unmarshal(by, &servers); err != nil {
+			return servers, errors.New("failed to get servers : " + err.Error() + " : " + string(by))
+		}
+		os.WriteFile(filename, by, 0644)
+	}
+	return servers, nil
+}
+
+func GetCachedUserAccounts(client IHttpClient, ctx context.Context, lobby, bearerToken string) ([]Account, error) {
+	var userAccounts []Account
+	var filename string = "./api/useraccounts.json"
+	os.Mkdir("api", 0644)
+	if _, err := os.Stat(filename); err == nil {
+		by, err := os.ReadFile(filename)
+		if err != nil {
+			return userAccounts, err
+		}
+		if err := json.Unmarshal(by, &userAccounts); err != nil {
+			return userAccounts, errors.New("failed to get user accounts : " + err.Error() + " : " + string(by))
+		}
+	} else {
+		req, err := http.NewRequest(http.MethodGet, "https://"+lobby+".ogame.gameforge.com/api/users/me/accounts", nil)
+		if err != nil {
+			return userAccounts, err
+		}
+		req.Header.Add("authorization", "Bearer "+bearerToken)
+		req.Header.Add("Accept-Encoding", "gzip, deflate, br")
+		req.WithContext(ctx)
+		resp, err := client.Do(req)
+		if err != nil {
+			return userAccounts, err
+		}
+		defer resp.Body.Close()
+		by, err := readBody(resp)
+		if err != nil {
+			return userAccounts, err
+		}
+		if err := json.Unmarshal(by, &userAccounts); err != nil {
+			return userAccounts, errors.New("failed to get user accounts : " + err.Error() + " : " + string(by))
+		}
+		os.WriteFile(filename, by, 0644)
+	}
+
+	return userAccounts, nil
+}
+
+func (b *OGame) OfferOfTheDayAvailable() error {
+	pageHTML, err := b.postPageContent(url.Values{"page": {"ajax"}, "component": {"traderimportexport"}}, url.Values{"show": {"importexport"}, "ajax": {"1"}})
+	if err != nil {
+		return err
+	}
+
+	price, importToken, planetResources, multiplier, err := b.extractor.ExtractOfferOfTheDay(pageHTML)
+	if err != nil {
+		return err
+	}
+	payload := calcResources(price, planetResources, multiplier)
+	payload.Add("action", "trade")
+	payload.Add("bid[honor]", "0")
+	payload.Add("token", importToken)
+	payload.Add("ajax", "1")
+	pageHTML1, err := b.postPageContent(url.Values{"page": {"ajax"}, "component": {"traderimportexport"}, "ajax": {"1"}, "action": {"trade"}, "asJson": {"1"}}, payload)
+	if err != nil {
+		return err
+	}
+	// {"message":"You have bought a container.","error":false,"item":{"uuid":"40f6c78e11be01ad3389b7dccd6ab8efa9347f3c","itemText":"You have purchased 1 KRAKEN Bronze.","bargainText":"The contents of the container not appeal to you? For 500 Dark Matter you can exchange the container for another random container of the same quality. You can only carry out this exchange 2 times per daily offer.","bargainCost":500,"bargainCostText":"Costs: 500 Dark Matter","tooltip":"KRAKEN Bronze|Reduces the building time of buildings currently under construction by <b>30m<\/b>.<br \/><br \/>\nDuration: now<br \/><br \/>\nPrice: --- <br \/>\nIn Inventory: 1","image":"98629d11293c9f2703592ed0314d99f320f45845","amount":1,"rarity":"common"},"newToken":"07eefc14105db0f30cb331a8b7af0bfe"}
+	var tmp struct {
+		Message      string
+		Error        bool
+		NewAjaxToken string
+	}
+	if err := json.Unmarshal(pageHTML1, &tmp); err != nil {
+		return err
+	}
+	if tmp.Error {
+		return errors.New(tmp.Message)
+	}
+
+	payload2 := url.Values{"action": {"takeItem"}, "token": {tmp.NewAjaxToken}, "ajax": {"1"}}
+	pageHTML2, _ := b.postPageContent(url.Values{"page": {"ajax"}, "component": {"traderimportexport"}, "ajax": {"1"}, "action": {"takeItem"}, "asJson": {"1"}}, payload2)
+	var tmp2 struct {
+		Message      string
+		Error        bool
+		NewAjaxToken string
+	}
+	if err := json.Unmarshal(pageHTML2, &tmp2); err != nil {
+		return err
+	}
+	if tmp2.Error {
+		return errors.New(tmp2.Message)
+	}
+	// {"error":false,"message":"You have accepted the offer and put the item in your inventory.","item":{"name":"Bronze Deuterium Booster","image":"f0e514af79d0808e334e9b6b695bf864b861bdfa","imageLarge":"c7c2837a0b341d37383d6a9d8f8986f500db7bf9","title":"Bronze Deuterium Booster|+10% more Deuterium Synthesizer harvest on one planet<br \/><br \/>\nDuration: 1w<br \/><br \/>\nPrice: --- <br \/>\nIn Inventory: 134","effect":"+10% more Deuterium Synthesizer harvest on one planet","ref":"d9fa5f359e80ff4f4c97545d07c66dbadab1d1be","rarity":"common","amount":134,"amount_free":134,"amount_bought":0,"category":["d8d49c315fa620d9c7f1f19963970dea59a0e3be","e71139e15ee5b6f472e2c68a97aa4bae9c80e9da"],"currency":"dm","costs":"2500","isReduced":false,"buyable":false,"canBeActivated":true,"canBeBoughtAndActivated":false,"isAnUpgrade":false,"isCharacterClassItem":false,"hasEnoughCurrency":true,"cooldown":0,"duration":604800,"durationExtension":null,"totalTime":null,"timeLeft":null,"status":null,"extendable":false,"firstStatus":"effecting","toolTip":"Bronze Deuterium Booster|+10% more Deuterium Synthesizer harvest on one planet&lt;br \/&gt;&lt;br \/&gt;\nDuration: 1w&lt;br \/&gt;&lt;br \/&gt;\nPrice: --- &lt;br \/&gt;\nIn Inventory: 134","buyTitle":"This item is currently unavailable for purchase.","activationTitle":"Activate","moonOnlyItem":false,"newOffer":false,"noOfferMessage":"There are no further offers today. Please come again tomorrow."},"newToken":"dec779714b893be9b39c0bedf5738450","components":[],"newAjaxToken":"e20cf0a6ca0e9b43a81ccb8fe7e7e2e3"}
+
+	return nil
+}
+
+func (b *OGame) CreateAlliance(tag, name string) error {
+	bot := b.BeginNamed("Create Alliance")
+	defer bot.Done()
+
+	params := url.Values{"page": {"ingame"}, "component": {"alliance"}}
+
+	pageHTML, err := bot.GetPageContent(params)
+	if err != nil {
+		return err
+	}
+	//doc, _ := goquery.NewDocumentFromReader(bytes.NewReader(pageHTML))
+	rgx := regexp.MustCompile(`var token = "([^"]+)";`)
+	m := rgx.FindSubmatch(pageHTML)
+	if len(m) != 2 {
+		return errors.New("unable to find form token")
+	}
+	token := string(m[1])
+
+	//  var urlCreateAlliance = "http:\/\/127.0.0.1:8080\/195\/game\/index.php?page=ingame&component=alliance&tab=createNewAlliance&action=createAlliance&asJson=1";
+	//  var urlSendApplication = "http:\/\/127.0.0.1:8080\/195\/game\/index.php?page=ingame&component=alliance&tab=handleApplication&action=createApplication&asJson=1";
+	//	var urlCancelApplication = "http:\/\/127.0.0.1:8080\/195\/game\/index.php?page=ingame&component=alliance&tab=handleApplication&action=cancelApplication&asJson=1";
+	params = url.Values{"page": {"ingame"}, "component": {"alliance"}, "tab": {"createNewAlliance"}, "action": {"createAlliance"}, "asJson": {"1"}}
+	payload := url.Values{"createTag": {tag}, "createName": {name}, "token": {token}}
+	//createTag=Nuclear&createName=Nuclear&token=043a9f44af42e0da6da9b7f4c72fdb75
+	pageHTML, err = bot.PostPageContent(params, payload)
+	log.Printf("Payload: %s", payload.Encode())
+
+	type resultJson struct {
+		Status string `json:"status"`
+	}
+	var result resultJson
+	err = json.Unmarshal(pageHTML, &result)
+	if err != nil {
+		return err
+	}
+	if result.Status == "success" {
+		return nil
+	}
+	return errors.New("Status " + result.Status)
+}
+
+func (b *OGame) SetAllianceClass(class AllianceClass) error {
+	bot := b.BeginNamed("Set Alliance Class")
+	defer bot.Done()
+	//https://s801-en.ogame.gameforge.com/game/index.php?page=ingame&component=alliance&tab=classselection&action=fetchClasses&ajax=1&token=917c290ab03a9e989ce851a207d27dd3
+	// Warriors
+	// Traders
+	// Researchers
+	//ogame.Warrior
+	//ogame.Trader
+	//ogame.Researcher
+
+	//https://s801-en.ogame.gameforge.com/game/index.php?page=ingame&component=allianceclassselection&action=fetchDataAboutCurrentAllianceClass&ajax=1&asJson=1
+	/*
+		Result:
+		{"currentAllianceClass":"-","dateOfLastAllianceClassChange":"16.08.2022 13:52:15","status":"success","message":"OK","components":[],"allianceClasses":[{"id":1,"name":"Warriors","price":500000,"icon":"warrior","isActive":true,"boni":[{"name":"Faster Ships","icon":"allymembershipspeed","longDescription":"+10% speed for ships flying between alliance members","shortDescription":"+10%"},{"name":"More Combat Research Levels","icon":"allycombatresearch","longDescription":"+1 combat research levels","shortDescription":"1 additional combat research levels"},{"name":"More Espionage Research Levels","icon":"allyespionageresearch","longDescription":"+1 espionage research levels","shortDescription":"1 additional espionage research levels"},{"name":"Espionage System","icon":"usespysystem","longDescription":"The espionage system can be used to scan whole systems.","shortDescription":"Use espionage system"}],"titleText":"Alliance Class: Warriors|+10% speed for ships flying between alliance members<br>+1 combat research levels<br>+1 espionage research levels<br>The espionage system can be used to scan whole systems.","isSelected":true,"infoLink":"https:\/\/s801-en.ogame.gameforge.com\/game\/index.php?page=allianceclassinfo&ajax=1&allianceClassId=1","button":{"type":"freeselect","darkmatter":500000,"label":"Free Activation","link":"https:\/\/s801-en.ogame.gameforge.com\/game\/index.php?page=ingame&component=alliance&tab=classselection&allianceClassId=1&action=selectClass&ajax=1&asJson=1&type=freeselect","disabled":false,"changeTitle":""}},{"id":2,"name":"Traders","price":500000,"icon":"trader","isActive":false,"boni":[{"name":"Rapid Transporters","icon":"allyshipspeed","longDescription":"+10% speed for transporters","shortDescription":"+10%"},{"name":"Increased Production","icon":"allyresource","longDescription":"+5% mine production","shortDescription":"+5%"},{"name":"Increased Energy Production","icon":"allyenergy","longDescription":"+5% energy production","shortDescription":"+5%"},{"name":"Increased Planet Storage Capacity","icon":"allyresource","longDescription":"+10% planet storage capacity","shortDescription":"+10%"},{"name":"Increased Moon Storage Capacity","icon":"allyresource","longDescription":"+10% moon storage capacity","shortDescription":"+10%"}],"titleText":"Alliance Class: Traders|+10% speed for transporters<br>+5% mine production<br>+5% energy production<br>+10% planet storage capacity<br>+10% moon storage capacity","isSelected":false,"infoLink":"https:\/\/s801-en.ogame.gameforge.com\/game\/index.php?page=allianceclassinfo&ajax=1&allianceClassId=2","button":{"type":"freeselect","darkmatter":500000,"label":"Free Activation","link":"https:\/\/s801-en.ogame.gameforge.com\/game\/index.php?page=ingame&component=alliance&tab=classselection&allianceClassId=2&action=selectClass&ajax=1&asJson=1&type=freeselect","disabled":false,"changeTitle":""}},{"id":3,"name":"Researchers","price":500000,"icon":"explorer","isActive":false,"boni":[{"name":"Planet Size","icon":"allycolonization","longDescription":"+5% larger planets on colonisation","shortDescription":"+5%"},{"name":"Faster Expeditions","icon":"allyexpeditionspeed","longDescription":"+10% speed to expedition destination","shortDescription":"+10%"},{"name":"System Phalanx","icon":"usephalanxsystem","longDescription":"The system phalanx can be used to scan fleet movements in whole systems.","shortDescription":"Use system phalanx"}],"titleText":"Alliance Class: Researchers|+5% larger planets on colonisation<br>+10% speed to expedition destination<br>The system phalanx can be used to scan fleet movements in whole systems.","isSelected":false,"infoLink":"https:\/\/s801-en.ogame.gameforge.com\/game\/index.php?page=allianceclassinfo&ajax=1&allianceClassId=3","button":{"type":"freeselect","darkmatter":500000,"label":"Free Activation","link":"https:\/\/s801-en.ogame.gameforge.com\/game\/index.php?page=ingame&component=alliance&tab=classselection&allianceClassId=3&action=selectClass&ajax=1&asJson=1&type=freeselect","disabled":false,"changeTitle":""}}],"premiumLink":"https:\/\/s801-en.ogame.gameforge.com\/game\/index.php?page=premium&showDarkMatter=1","allianceClassId":1,"token":"d5e705f2d350435c1e3d17cca9f9dc0b","newAjaxToken":"d5e705f2d350435c1e3d17cca9f9dc0b"}
+	*/
+	params := url.Values{}
+	pageHTML, err := bot.GetPageContent(params)
+	if err != nil {
+		return err
+	}
+
+	type jsonResult struct {
+		NewAjaxToken string `json:"newAjaxToken"`
+	}
+	var result jsonResult
+	err = json.Unmarshal(pageHTML, &result)
+	if err != nil {
+		return err
+	}
+
+	params = url.Values{
+		"page":            {"ingame"},
+		"component":       {"alliance"},
+		"tab":             {"classselection"},
+		"allianceClassId": {strconv.FormatInt(int64(class), 10)},
+		"action":          {"selectClass"},
+		"ajax":            {"1"},
+		"asJson":          {"1"},
+		"type":            {"freeselect"},
+	}
+	payload := url.Values{
+		"token": {result.NewAjaxToken},
+	}
+	pageHTML, err = bot.PostPageContent(params, payload)
+	if err != nil {
+		return err
+	}
+
+	type result2Json struct {
+		Success string `json:"success"`
+	}
+	var result2 result2Json
+	err = json.Unmarshal(pageHTML, &result2)
+	if err != nil {
+		return err
+	}
+
+	if result2.Success == "success" {
+		return nil
+	}
+
+	// POST
+	//https://s801-en.ogame.gameforge.com/game/index.php?page=ingame&component=alliance&tab=classselection&allianceClassId=3&action=selectClass&ajax=1&asJson=1&type=freeselect
+	// Payload: {token: ""abcd}
+
+	/*
+		Result:{"tab":"classselection","allianceClassEnabled":true,"tabs":{"overview":{"name":"Overview","cssClass":"navi overview","enabled":true,"url":"https:\/\/s801-en.ogame.gameforge.com\/game\/index.php?page=ingame&component=alliance&tab=overview&action=fetchOverview&ajax=1","active":false,"tab":"overview"},"management":{"name":"Management","cssClass":"navi management","enabled":true,"url":"https:\/\/s801-en.ogame.gameforge.com\/game\/index.php?page=ingame&component=alliance&tab=management&action=fetchManagement&ajax=1","active":false,"tab":"management"},"broadcast":{"name":"Communication","cssClass":"navi broadcast","enabled":true,"url":"https:\/\/s801-en.ogame.gameforge.com\/game\/index.php?page=ingame&component=alliance&tab=broadcast&action=fetchBroadcast&ajax=1","active":false,"tab":"broadcast"},"applications":{"name":"Applications","cssClass":"navi applications","enabled":true,"applicationCount":0,"url":"https:\/\/s801-en.ogame.gameforge.com\/game\/index.php?page=ingame&component=alliance&tab=applications&action=fetchApplications&ajax=1","active":false,"tab":"applications"},"classselection":{"name":"Alliance Classes","cssClass":"navi classselection","enabled":true,"url":"https:\/\/s801-en.ogame.gameforge.com\/game\/index.php?page=ingame&component=alliance&tab=classselection&action=fetchClasses&ajax=1","active":true,"tab":"classselection"}},"status":"failure","errors":[{"message":"A previously unknown error has occurred. Unfortunately your last action couldn`t be executed!","error":100001}],"components":[],"newAjaxToken":"f7c9ea655d2cffa7aae7abf8eea45e02"}
+	*/
+	return errors.New("Error Selecting Alliance Class Success: " + result2.Success)
 }

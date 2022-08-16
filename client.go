@@ -27,6 +27,7 @@ type OGameClient struct {
 	rpsStartTime    int64 // atomic
 	bytesDownloaded int64
 	bytesUploaded   int64
+	requestCounter  int64
 }
 
 // NewOGameClient ...
@@ -95,6 +96,7 @@ func (c *OGameClient) do(req *http.Request) (*http.Response, error) {
 	defer resp.Body.Close()
 	c.bytesDownloaded += int64(len(body))
 	c.bytesUploaded += req.ContentLength
+	c.requestCounter++
 	// Reset resp.Body so it can be use again
 	resp.Body = io.NopCloser(bytes.NewBuffer(body))
 	return resp, err

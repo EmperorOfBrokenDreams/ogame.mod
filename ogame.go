@@ -55,6 +55,7 @@ type OGame struct {
 	stateChangeCallbacks  []func(locked bool, actor string)
 	quiet                 bool
 	Player                UserInfos
+	Alliance              *AllianceInfos
 	CachedPreferences     Preferences
 	isVacationModeEnabled bool
 	researches            *Researches
@@ -658,12 +659,12 @@ func (b *OGame) login() error {
 
 func (b *OGame) loginPart1(token string) (server Server, userAccount Account, err error) {
 	b.debug("get user accounts")
-	accounts, err := GetUserAccounts(b.client, b.ctx, b.lobby, token)
+	accounts, err := GetCachedUserAccounts(b.client, b.ctx, b.lobby, token)
 	if err != nil {
 		return
 	}
 	b.debug("get servers")
-	servers, err := GetServers(b.lobby, b.client, b.ctx)
+	servers, err := GetCachedServers(b.lobby, b.client, b.ctx)
 	if err != nil {
 		return
 	}
@@ -686,7 +687,7 @@ func (b *OGame) loginPart2(server Server) error {
 	start := time.Now()
 	b.server = server
 	serverData, err := b.getServerDataWrapper(func() (ServerData, error) {
-		return GetServerData(b.client, b.ctx, b.server.Number, b.server.Language)
+		return GetServerDataCached(b.client, b.ctx, b.server.Number, b.server.Language)
 	})
 	if err != nil {
 		return err
@@ -4883,6 +4884,11 @@ func (b *OGame) BytesDownloaded() int64 {
 // BytesUploaded returns the amount of bytes uploaded
 func (b *OGame) BytesUploaded() int64 {
 	return b.client.bytesUploaded
+}
+
+// BytesUploaded returns the amount of bytes uploaded
+func (b *OGame) RequestCounter() int64 {
+	return b.client.requestCounter
 }
 
 // GetUniverseName get the name of the universe the bot is playing into
