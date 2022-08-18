@@ -1570,6 +1570,7 @@ func extractUserInfosV6(pageHTML []byte, lang string) (UserInfos, error) {
 	res.PlayerID = int64(toInt(playerIDGroups[1]))
 	res.PlayerName = string(playerNameGroups[1])
 	html2 := subHTMLGroups[1]
+	html2 = []byte(strings.ReplaceAll(string(html2), ",", "."))
 
 	infosRgx := regexp.MustCompile(`([\d\\.]+) \(Place ([\d.]+) of ([\d.]+)\)`)
 	switch lang {
@@ -1636,7 +1637,7 @@ func extractUserInfosV6(pageHTML []byte, lang string) (UserInfos, error) {
 	res.Points = ParseInt(string(infos[1]))
 	res.Rank = ParseInt(string(infos[2]))
 	res.Total = ParseInt(string(infos[3]))
-	if lang == "tr" || lang == "jp" {
+	if lang == "tr" || lang == "jp" || lang == "tw" {
 		res.Rank = ParseInt(string(infos[3]))
 		res.Total = ParseInt(string(infos[2]))
 	}
