@@ -32,6 +32,7 @@ type Client struct {
 	rpsStartTime    int64 // atomic
 	bytesDownloaded int64
 	bytesUploaded   int64
+	requestCounter  int64
 }
 
 func (c *Client) BytesDownloaded() int64 {
@@ -44,6 +45,12 @@ func (c *Client) BytesUploaded() int64 {
 	c.Lock()
 	defer c.Unlock()
 	return c.bytesUploaded
+}
+
+func (c *Client) Requests() int64 {
+	c.Lock()
+	defer c.Unlock()
+	return c.requestCounter
 }
 
 // NewClient ...
@@ -75,6 +82,7 @@ func (c *Client) SetMaxRPS(maxRPS int32) {
 }
 
 func (c *Client) incrRPS() {
+	c.requestCounter++
 	newRPS := atomic.AddInt32(&c.rpsCounter, 1)
 	maxRPS := atomic.LoadInt32(&c.maxRPS)
 	if maxRPS > 0 && newRPS > maxRPS {

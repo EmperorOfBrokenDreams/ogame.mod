@@ -14,7 +14,7 @@ type Item struct {
 	canBeActivated bool
 	//Category                []string
 	//Currency                string // dm
-	//Costs                   int64
+	Costs int64
 	//IsReduced               bool
 	//buyable                 bool
 	//canBeBoughtAndActivated bool

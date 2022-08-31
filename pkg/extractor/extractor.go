@@ -1,13 +1,14 @@
 package extractor
 
 import (
+	"net/url"
+	"time"
+
 	"github.com/PuerkitoBio/goquery"
 	v6 "github.com/alaingilbert/ogame/pkg/extractor/v6"
 	v7 "github.com/alaingilbert/ogame/pkg/extractor/v7"
 	v9 "github.com/alaingilbert/ogame/pkg/extractor/v9"
 	"github.com/alaingilbert/ogame/pkg/ogame"
-	"net/url"
-	"time"
 )
 
 type FullPageExtractorBytes interface {
@@ -483,6 +484,7 @@ type Extractor interface {
 	ResourcesSettingsExtractorBytesDoc
 	ShipyardExtractorBytesDoc
 	TechnologyDetailsExtractorBytesDoc
+	ExtractMessagesBytesDoc
 
 	BuffActivationExtractorBytes
 	DestroyRocketsExtractorBytes

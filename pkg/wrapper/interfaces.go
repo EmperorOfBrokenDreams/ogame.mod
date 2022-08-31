@@ -2,13 +2,14 @@ package wrapper
 
 import (
 	"crypto/tls"
+	"net/http"
+	"net/url"
+	"time"
+
 	"github.com/alaingilbert/ogame/pkg/extractor"
 	"github.com/alaingilbert/ogame/pkg/httpclient"
 	"github.com/alaingilbert/ogame/pkg/ogame"
 	"github.com/alaingilbert/ogame/pkg/taskRunner"
-	"net/http"
-	"net/url"
-	"time"
 )
 
 // Celestial superset of ogame.Celestial.
@@ -139,6 +140,13 @@ type Prioritizable interface {
 	JumpGateDestinations(origin ogame.MoonID) ([]ogame.MoonID, int64, error)
 	Phalanx(ogame.MoonID, ogame.Coordinate) ([]ogame.Fleet, error)
 	UnsafePhalanx(ogame.MoonID, ogame.Coordinate) ([]ogame.Fleet, error)
+
+	// Extension
+	BuyItem(ref string, celestialID ogame.CelestialID) error
+	NinjaSendFleet(celestialID ogame.CelestialID, ships []ogame.Quantifiable, speed ogame.Speed, where ogame.Coordinate, mission ogame.MissionID, resources ogame.Resources, holdingTime, unionID int64, ensure bool) (ogame.Fleet, error)
+	NjaCancelFleet(fleetID ogame.FleetID) error
+	TradeScraper(ships ogame.ShipsInfos, opts ...Option) error
+	GetMessages() ([]ogame.Message, error)
 }
 
 // Wrapper all available functions to control ogame bot
