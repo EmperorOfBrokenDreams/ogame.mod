@@ -147,6 +147,7 @@ type Prioritizable interface {
 	NjaCancelFleet(fleetID ogame.FleetID) error
 	TradeScraper(ships ogame.ShipsInfos, opts ...Option) error
 	GetMessages() ([]ogame.Message, error)
+	FlightTime2(origin, destination ogame.Coordinate, speed ogame.Speed, ships ogame.ShipsInfos, missionID ogame.MissionID, holdingTime int64) (secs, fuel int64)
 }
 
 // Wrapper all available functions to control ogame bot

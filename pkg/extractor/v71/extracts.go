@@ -4,15 +4,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/alaingilbert/ogame/pkg/extractor/v6"
-	"github.com/alaingilbert/ogame/pkg/extractor/v7"
-	"github.com/alaingilbert/ogame/pkg/ogame"
-	"github.com/alaingilbert/ogame/pkg/utils"
 	"math"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	v6 "github.com/alaingilbert/ogame/pkg/extractor/v6"
+	v7 "github.com/alaingilbert/ogame/pkg/extractor/v7"
+	"github.com/alaingilbert/ogame/pkg/ogame"
+	"github.com/alaingilbert/ogame/pkg/utils"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/alaingilbert/clockwork"
@@ -187,72 +188,95 @@ func extractResourcesDetails(pageHTML []byte) (out ogame.ResourcesDetails, err e
 }
 
 type planetTechsResp struct {
-	Num1   int64 `json:"1"`
-	Num2   int64 `json:"2"`
-	Num3   int64 `json:"3"`
-	Num4   int64 `json:"4"`
-	Num12  int64 `json:"12"`
-	Num14  int64 `json:"14"`
-	Num15  int64 `json:"15"`
-	Num21  int64 `json:"21"`
-	Num22  int64 `json:"22"`
-	Num23  int64 `json:"23"`
-	Num24  int64 `json:"24"`
-	Num31  int64 `json:"31"`
-	Num33  int64 `json:"33"`
-	Num34  int64 `json:"34"`
-	Num36  int64 `json:"36"`
-	Num41  int64 `json:"41"`
-	Num42  int64 `json:"42"`
-	Num43  int64 `json:"43"`
-	Num44  int64 `json:"44"`
-	Num106 int64 `json:"106"`
-	Num108 int64 `json:"108"`
-	Num109 int64 `json:"109"`
-	Num110 int64 `json:"110"`
-	Num111 int64 `json:"111"`
-	Num113 int64 `json:"113"`
-	Num114 int64 `json:"114"`
-	Num115 int64 `json:"115"`
-	Num117 int64 `json:"117"`
-	Num118 int64 `json:"118"`
-	Num120 int64 `json:"120"`
-	Num121 int64 `json:"121"`
-	Num122 int64 `json:"122"`
-	Num123 int64 `json:"123"`
-	Num124 int64 `json:"124"`
-	Num199 int64 `json:"199"`
-	Num202 int64 `json:"202"`
-	Num203 int64 `json:"203"`
-	Num204 int64 `json:"204"`
-	Num205 int64 `json:"205"`
-	Num206 int64 `json:"206"`
-	Num207 int64 `json:"207"`
-	Num208 int64 `json:"208"`
-	Num209 int64 `json:"209"`
-	Num210 int64 `json:"210"`
-	Num211 int64 `json:"211"`
-	Num212 int64 `json:"212"`
-	Num213 int64 `json:"213"`
-	Num214 int64 `json:"214"`
-	Num215 int64 `json:"215"`
-	Num217 int64 `json:"217"`
-	Num218 int64 `json:"218"`
-	Num219 int64 `json:"219"`
-	Num401 int64 `json:"401"`
-	Num402 int64 `json:"402"`
-	Num403 int64 `json:"403"`
-	Num404 int64 `json:"404"`
-	Num405 int64 `json:"405"`
-	Num406 int64 `json:"406"`
-	Num407 int64 `json:"407"`
-	Num408 int64 `json:"408"`
-	Num502 int64 `json:"502"`
-	Num503 int64 `json:"503"`
+	Num1     int64 `json:"1"`
+	Num2     int64 `json:"2"`
+	Num3     int64 `json:"3"`
+	Num4     int64 `json:"4"`
+	Num12    int64 `json:"12"`
+	Num14    int64 `json:"14"`
+	Num15    int64 `json:"15"`
+	Num21    int64 `json:"21"`
+	Num22    int64 `json:"22"`
+	Num23    int64 `json:"23"`
+	Num24    int64 `json:"24"`
+	Num31    int64 `json:"31"`
+	Num33    int64 `json:"33"`
+	Num34    int64 `json:"34"`
+	Num36    int64 `json:"36"`
+	Num41    int64 `json:"41"`
+	Num42    int64 `json:"42"`
+	Num43    int64 `json:"43"`
+	Num44    int64 `json:"44"`
+	Num106   int64 `json:"106"`
+	Num108   int64 `json:"108"`
+	Num109   int64 `json:"109"`
+	Num110   int64 `json:"110"`
+	Num111   int64 `json:"111"`
+	Num113   int64 `json:"113"`
+	Num114   int64 `json:"114"`
+	Num115   int64 `json:"115"`
+	Num117   int64 `json:"117"`
+	Num118   int64 `json:"118"`
+	Num120   int64 `json:"120"`
+	Num121   int64 `json:"121"`
+	Num122   int64 `json:"122"`
+	Num123   int64 `json:"123"`
+	Num124   int64 `json:"124"`
+	Num199   int64 `json:"199"`
+	Num202   int64 `json:"202"`
+	Num203   int64 `json:"203"`
+	Num204   int64 `json:"204"`
+	Num205   int64 `json:"205"`
+	Num206   int64 `json:"206"`
+	Num207   int64 `json:"207"`
+	Num208   int64 `json:"208"`
+	Num209   int64 `json:"209"`
+	Num210   int64 `json:"210"`
+	Num211   int64 `json:"211"`
+	Num212   int64 `json:"212"`
+	Num213   int64 `json:"213"`
+	Num214   int64 `json:"214"`
+	Num215   int64 `json:"215"`
+	Num217   int64 `json:"217"`
+	Num218   int64 `json:"218"`
+	Num219   int64 `json:"219"`
+	Num401   int64 `json:"401"`
+	Num402   int64 `json:"402"`
+	Num403   int64 `json:"403"`
+	Num404   int64 `json:"404"`
+	Num405   int64 `json:"405"`
+	Num406   int64 `json:"406"`
+	Num407   int64 `json:"407"`
+	Num408   int64 `json:"408"`
+	Num502   int64 `json:"502"`
+	Num503   int64 `json:"503"`
+	Num11101 int64 `json:"11101"`
+	Num11102 int64 `json:"11102"`
 }
 
 func extractTechs(pageHTML []byte) (supplies ogame.ResourcesBuildings, facilities ogame.Facilities, shipsInfos ogame.ShipsInfos, defenses ogame.DefensesInfos, researches ogame.Researches, err error) {
 	var res planetTechsResp
+	// [0,6,4,1,6]
+	var resArray []int64
+	if strings.ContainsAny(string(pageHTML), "[") && strings.ContainsAny(string(pageHTML), "]") {
+		err := json.Unmarshal(pageHTML, &resArray)
+		if err != nil {
+			return supplies, facilities, shipsInfos, defenses, researches, ogame.ErrInvalidPlanetID
+		}
+
+		if len(resArray) == 1 {
+			return supplies, facilities, shipsInfos, defenses, researches, ogame.ErrInvalidPlanetID
+		}
+
+		if len(resArray) == 5 {
+			return ogame.ResourcesBuildings{
+				MetalMine:            resArray[1],
+				CrystalMine:          resArray[2],
+				DeuteriumSynthesizer: resArray[3],
+				SolarPlant:           resArray[4],
+			}, ogame.Facilities{}, ogame.ShipsInfos{}, ogame.DefensesInfos{}, ogame.Researches{}, nil
+		}
+	}
 	if err = json.Unmarshal(pageHTML, &res); err != nil {
 		if v6.IsLogged(pageHTML) {
 			return supplies, facilities, shipsInfos, defenses, researches, ogame.ErrInvalidPlanetID

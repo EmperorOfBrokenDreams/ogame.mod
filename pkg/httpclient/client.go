@@ -2,6 +2,7 @@ package httpclient
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -11,6 +12,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"golang.org/x/time/rate"
 )
 
 type IHttpClient interface {
@@ -33,6 +36,7 @@ type Client struct {
 	bytesDownloaded int64
 	bytesUploaded   int64
 	requestCounter  int64
+	Ratelimiter     *rate.Limiter
 }
 
 func (c *Client) BytesDownloaded() int64 {
@@ -55,11 +59,13 @@ func (c *Client) Requests() int64 {
 
 // NewClient ...
 func NewClient() *Client {
+	rl := rate.NewLimiter(rate.Every(1*time.Second), 10) // 10 request every 1 seconds
 	client := &Client{
 		Client: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: 60 * time.Second,
 		},
-		maxRPS: 0,
+		Ratelimiter: rl,
+		maxRPS:      0,
 	}
 
 	const delay = 1
@@ -87,8 +93,10 @@ func (c *Client) incrRPS() {
 	maxRPS := atomic.LoadInt32(&c.maxRPS)
 	if maxRPS > 0 && newRPS > maxRPS {
 		s := atomic.LoadInt64(&c.rpsStartTime) - time.Now().UnixNano()
-		// fmt.Printf("throttle %d\n", s)
+		//fmt.Printf("throttle %d\n", s)
 		time.Sleep(time.Duration(s))
+		// fmt.Printf("throttle %s %d\n", time.Second, c.requestCounter)
+		// time.Sleep(time.Duration(time.Second))
 	}
 }
 
@@ -123,6 +131,11 @@ func (c *Client) Do(req *http.Request) (*http.Response, error) {
 }
 
 func (c *Client) do(req *http.Request) (*http.Response, error) {
+	ctx := context.Background()
+	err := c.Ratelimiter.Wait(ctx) // This is a blocking call. Honors the rate limit
+	if err != nil {
+		return nil, err
+	}
 	c.incrRPS()
 	req.Header.Add("User-Agent", c.userAgent)
 	resp, err := c.Client.Do(req)

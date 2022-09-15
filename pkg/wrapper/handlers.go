@@ -5,12 +5,13 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/alaingilbert/ogame/pkg/ogame"
-	"github.com/alaingilbert/ogame/pkg/utils"
-	echo "github.com/labstack/echo/v4"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/alaingilbert/ogame/pkg/ogame"
+	"github.com/alaingilbert/ogame/pkg/utils"
+	echo "github.com/labstack/echo/v4"
 )
 
 // APIResp ...
@@ -968,6 +969,10 @@ func replaceHostname(bot *OGame, html []byte) []byte {
 	html = bytes.Replace(html, escapedServerURL, escapedAPINewHostname, -1)
 	html = bytes.Replace(html, doubleEscapedServerURL, doubleEscapedAPINewHostname, -1)
 	return html
+}
+
+func ReplaceHostname(bot *OGame, html []byte, request *http.Request) []byte {
+	return replaceHostname(bot, html)
 }
 
 // GetStaticHandler ...

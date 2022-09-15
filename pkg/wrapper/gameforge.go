@@ -6,11 +6,6 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"github.com/alaingilbert/ogame/pkg/httpclient"
-	"github.com/alaingilbert/ogame/pkg/ogame"
-	"github.com/alaingilbert/ogame/pkg/utils"
-	"github.com/pquerna/otp"
-	"github.com/pquerna/otp/totp"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -18,6 +13,12 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/alaingilbert/ogame/pkg/httpclient"
+	"github.com/alaingilbert/ogame/pkg/ogame"
+	"github.com/alaingilbert/ogame/pkg/utils"
+	"github.com/pquerna/otp"
+	"github.com/pquerna/otp/totp"
 )
 
 // TokenCookieName ogame cookie name for token id
@@ -590,6 +591,7 @@ type Account struct {
 	ID         int64 // player ID
 	Name       string
 	LastPlayed string
+	LastLogin  string
 	Blocked    bool
 	Details    []struct {
 		Type  string
@@ -600,6 +602,10 @@ type Account struct {
 		Shared       bool
 		EndTime      *string
 		CooldownTime *string
+	}
+	Trading struct {
+		Trading      bool
+		CoolDownTime *string
 	}
 }
 

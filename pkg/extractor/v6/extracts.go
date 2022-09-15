@@ -4,14 +4,16 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"github.com/alaingilbert/ogame/pkg/ogame"
-	"github.com/alaingilbert/ogame/pkg/utils"
 	"math"
 	"net/url"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/alaingilbert/ogame/pkg/ogame"
+	"github.com/alaingilbert/ogame/pkg/utils"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/alaingilbert/clockwork"
@@ -1509,7 +1511,7 @@ func extractUserInfos(pageHTML []byte, lang string) (ogame.UserInfos, error) {
 	res := ogame.UserInfos{}
 	res.PlayerID = int64(utils.ToInt(playerIDGroups[1]))
 	res.PlayerName = string(playerNameGroups[1])
-	html2 := subHTMLGroups[1]
+	html2 := []byte(strings.ReplaceAll(string(subHTMLGroups[1]), ",", "."))
 
 	infosRgx := regexp.MustCompile(`([\d\\.]+) \(Place ([\d.]+) of ([\d.]+)\)`)
 	switch lang {
@@ -1576,7 +1578,7 @@ func extractUserInfos(pageHTML []byte, lang string) (ogame.UserInfos, error) {
 	res.Points = utils.ParseInt(string(infos[1]))
 	res.Rank = utils.ParseInt(string(infos[2]))
 	res.Total = utils.ParseInt(string(infos[3]))
-	if lang == "tr" || lang == "jp" {
+	if lang == "tr" || lang == "jp" || lang == "tw" {
 		res.Rank = utils.ParseInt(string(infos[3]))
 		res.Total = utils.ParseInt(string(infos[2]))
 	}
