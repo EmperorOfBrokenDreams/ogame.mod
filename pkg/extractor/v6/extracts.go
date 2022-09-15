@@ -6,7 +6,6 @@ import (
 	"errors"
 	"math"
 	"net/url"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
