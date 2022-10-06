@@ -96,6 +96,24 @@ func (c CharacterClass) IsDiscoverer() bool {
 	return c == Discoverer
 }
 
+type LifeformClass int64
+
+func (c LifeformClass) IsHuman() bool {
+	return c == HumanClass
+}
+
+func (c LifeformClass) IsRocktal() bool {
+	return c == RocktalClass
+}
+
+func (c LifeformClass) IsMecha() bool {
+	return c == MechaClass
+}
+
+func (c LifeformClass) IsKaelesh() bool {
+	return c == KaeleshClass
+}
+
 // OGame constants
 const (
 	NoClass    CharacterClass = 0
@@ -107,6 +125,12 @@ const (
 	Warrior         AllianceClass = 1
 	Trader          AllianceClass = 2
 	Researcher      AllianceClass = 3
+
+	NoLifeformClass LifeformClass = 0
+	HumanClass      LifeformClass = 1
+	RocktalClass    LifeformClass = 2
+	MechaClass      LifeformClass = 3
+	KaeleshClass    LifeformClass = 4
 
 	PlanetType CelestialType = 1
 	DebrisType CelestialType = 2

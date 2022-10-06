@@ -2,9 +2,10 @@ package wrapper
 
 import (
 	"errors"
+	"time"
+
 	"github.com/alaingilbert/ogame/pkg/ogame"
 	"github.com/alaingilbert/ogame/pkg/utils"
-	"time"
 )
 
 // FleetBuilderFactory ...
