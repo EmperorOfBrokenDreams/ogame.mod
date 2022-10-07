@@ -343,7 +343,7 @@ func (b *OGame) ninjaSendFleetWithChecks(celestialID ogame.CelestialID, ships []
 
 	b.debug("Get Token: " + strconv.FormatInt(time.Now().Sub(BeginTime).Milliseconds(), 10) + " ms")
 
-	_, _, availableShips, _, techs, err := b.getTechs(celestialID)
+	_, _, availableShips, _, techs, _, err := b.getTechs(celestialID)
 	if err != nil {
 		return ogame.Fleet{}, err
 	}
