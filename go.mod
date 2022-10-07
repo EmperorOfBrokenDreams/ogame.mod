@@ -14,7 +14,7 @@ require (
 	github.com/hashicorp/go-version v1.2.0
 	github.com/inhies/go-bytesize v0.0.0-20220417184213-4913239db9cf
 	github.com/labstack/echo v3.3.10+incompatible
-	github.com/labstack/echo/v4 v4.8.0
+	github.com/labstack/echo/v4 v4.9.0
 	github.com/labstack/gommon v0.3.1
 	github.com/magiconair/properties v1.8.1
 	github.com/mattn/anko v0.1.9

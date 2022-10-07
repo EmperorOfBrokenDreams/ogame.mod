@@ -30,6 +30,14 @@ func TestExtractResourcesDetailsFromFullPage(t *testing.T) {
 	assert.Equal(t, int64(8000), res.Darkmatter.Found)
 }
 
+func TestExtractResourcesDetailsFromFullPagePopulation(t *testing.T) {
+	pageHTMLBytes, _ := ioutil.ReadFile("../../../samples/v9.0.4/en/lifeform/overview.html")
+	res := NewExtractor().ExtractResourcesDetailsFromFullPage(pageHTMLBytes)
+	assert.Equal(t, int64(1974118), res.Population.Available)
+	assert.Equal(t, 0.233, res.Population.Hungry)
+	assert.Equal(t, 61.983, res.Population.GrowthRate)
+}
+
 func TestExtractResources(t *testing.T) {
 	pageHTMLBytes, _ := ioutil.ReadFile("../../../samples/v9.0.0/en/overview.html")
 	res := NewExtractor().ExtractResources(pageHTMLBytes)
@@ -51,7 +59,9 @@ func TestExtractEspionageReport(t *testing.T) {
 
 func TestExtractOverviewProduction(t *testing.T) {
 	pageHTMLBytes, _ := ioutil.ReadFile("../../../samples/v9.0.2/en/lifeform/overview_all_queues.html")
-	prods, countdown, _ := NewExtractor().ExtractOverviewProduction(pageHTMLBytes)
+	e := NewExtractor()
+	e.SetLifeformEnabled(true)
+	prods, countdown, _ := e.ExtractOverviewProduction(pageHTMLBytes)
 	assert.Equal(t, 4, len(prods))
 	assert.Equal(t, int64(1660), countdown)
 	assert.Equal(t, ogame.SmallCargoID, prods[0].ID)
@@ -102,7 +112,7 @@ func TestGetConstructions(t *testing.T) {
 	// Without lifeform
 	pageHTMLBytes, _ := ioutil.ReadFile("../../../samples/v9.0.2/en/overview_all_queues.html")
 	clock := clockwork.NewFakeClockAt(time.Date(2022, 8, 20, 12, 43, 11, 0, time.UTC))
-	buildingID, buildingCountdown, researchID, researchCountdown := ExtractConstructions(pageHTMLBytes, clock)
+	buildingID, buildingCountdown, researchID, researchCountdown, _, _, _, _ := ExtractConstructions(pageHTMLBytes, clock)
 	assert.Equal(t, ogame.MetalMineID, buildingID)
 	assert.Equal(t, int64(5413), buildingCountdown)
 	assert.Equal(t, ogame.ComputerTechnologyID, researchID)
@@ -111,17 +121,11 @@ func TestGetConstructions(t *testing.T) {
 	// With lifeform
 	pageHTMLBytes, _ = ioutil.ReadFile("../../../samples/v9.0.2/en/lifeform/overview_all_queues2.html")
 	clock = clockwork.NewFakeClockAt(time.Date(2022, 8, 28, 17, 22, 26, 0, time.UTC))
-	buildingID, buildingCountdown, researchID, researchCountdown = ExtractConstructions(pageHTMLBytes, clock)
+	buildingID, buildingCountdown, researchID, researchCountdown, _, _, _, _ = ExtractConstructions(pageHTMLBytes, clock)
 	assert.Equal(t, ogame.MetalStorageID, buildingID)
 	assert.Equal(t, int64(33483), buildingCountdown)
 	assert.Equal(t, ogame.ComputerTechnologyID, researchID)
 	assert.Equal(t, int64(18355), researchCountdown)
-}
-
-func TestExtractResourceSettings(t *testing.T) {
-	pageHTMLBytes, _ := ioutil.ReadFile("../../../samples/v9.0.4/en/resource_settings.html")
-	settings, _, _ := NewExtractor().ExtractResourceSettings(pageHTMLBytes)
-	assert.Equal(t, ogame.ResourceSettings{MetalMine: 100, CrystalMine: 100, DeuteriumSynthesizer: 100, SolarPlant: 100, FusionReactor: 100, SolarSatellite: 100, Crawler: 100, PlasmaTechnology: 100}, settings)
 }
 
 func TestExtractUserInfos(t *testing.T) {
@@ -131,4 +135,95 @@ func TestExtractUserInfos(t *testing.T) {
 	assert.Equal(t, int64(30478), info.Points)
 	assert.Equal(t, int64(1102), info.Rank)
 	assert.Equal(t, int64(2931), info.Total)
+}
+
+func TestExtractFleetResources(t *testing.T) {
+	pageHTMLBytes, _ := ioutil.ReadFile("../../../samples/v9.0.4/en/lifeform/movement.html")
+	e := NewExtractor()
+	e.SetLocation(time.FixedZone("OGT", 3600))
+	e.SetLifeformEnabled(true)
+	fleets := e.ExtractFleets(pageHTMLBytes)
+	assert.Equal(t, int64(1), fleets[0].Resources.Metal)
+	assert.Equal(t, int64(2), fleets[0].Resources.Crystal)
+	assert.Equal(t, int64(3), fleets[0].Resources.Deuterium)
+}
+
+func TestExtractLfBuildings(t *testing.T) {
+	pageHTMLBytes, _ := ioutil.ReadFile("../../../samples/v9.0.4/en/lfbuildings.html")
+	res, _ := NewExtractor().ExtractLfBuildings(pageHTMLBytes)
+	assert.Equal(t, int64(2), res.ResidentialSector)
+	assert.Equal(t, int64(1), res.BiosphereFarm)
+	assert.Equal(t, int64(0), res.ResearchCentre)
+	assert.Equal(t, int64(0), res.AcademyOfSciences)
+	assert.Equal(t, int64(0), res.NeuroCalibrationCentre)
+	assert.Equal(t, int64(0), res.HighEnergySmelting)
+	assert.Equal(t, int64(0), res.FoodSilo)
+	assert.Equal(t, int64(0), res.FusionPoweredProduction)
+	assert.Equal(t, int64(0), res.Skyscraper)
+	assert.Equal(t, int64(0), res.BiotechLab)
+	assert.Equal(t, int64(0), res.Metropolis)
+	assert.Equal(t, int64(0), res.PlanetaryShield)
+}
+
+func TestExtractLfBuildingsRocktal(t *testing.T) {
+	pageHTMLBytes, _ := ioutil.ReadFile("../../../samples/v9.0.4/en/lifeform/lfbuildings_rocktal.html")
+	res, _ := NewExtractor().ExtractLfBuildings(pageHTMLBytes)
+	assert.Equal(t, int64(0), res.ResidentialSector)
+	assert.Equal(t, int64(0), res.BiosphereFarm)
+	assert.Equal(t, int64(0), res.ResearchCentre)
+	assert.Equal(t, int64(0), res.AcademyOfSciences)
+	assert.Equal(t, int64(0), res.NeuroCalibrationCentre)
+	assert.Equal(t, int64(0), res.HighEnergySmelting)
+	assert.Equal(t, int64(0), res.FoodSilo)
+	assert.Equal(t, int64(0), res.FusionPoweredProduction)
+	assert.Equal(t, int64(0), res.Skyscraper)
+	assert.Equal(t, int64(0), res.BiotechLab)
+	assert.Equal(t, int64(0), res.Metropolis)
+	assert.Equal(t, int64(0), res.PlanetaryShield)
+	assert.Equal(t, int64(2), res.MeditationEnclave)
+	assert.Equal(t, int64(1), res.CrystalFarm)
+}
+
+func TestExtractTechnologyDetails(t *testing.T) {
+	pageHTMLBytes, _ := ioutil.ReadFile("../../../samples/v9.0.4/en/lifeform/technologyDetails_1.html")
+	details, err := NewExtractor().ExtractTechnologyDetails(pageHTMLBytes)
+	assert.NoError(t, err)
+	assert.Equal(t, ogame.ID(11105), details.TechnologyID)
+	assert.Equal(t, 41*time.Minute+12*time.Second, details.ProductionDuration)
+	assert.Equal(t, int64(0), details.Level)
+	assert.Equal(t, int64(50000), details.Price.Metal)
+	assert.Equal(t, int64(40000), details.Price.Crystal)
+	assert.Equal(t, int64(50000), details.Price.Deuterium)
+	assert.Equal(t, int64(100000000), details.Price.Population)
+	assert.False(t, details.TearDownEnabled)
+
+	pageHTMLBytes, _ = ioutil.ReadFile("../../../samples/v9.0.4/en/lifeform/technologyDetails_lfbuilding_teardown_enabled.html")
+	details, err = NewExtractor().ExtractTechnologyDetails(pageHTMLBytes)
+	assert.NoError(t, err)
+	assert.Equal(t, ogame.ID(11101), details.TechnologyID)
+	assert.Equal(t, 6*time.Hour+58*time.Minute+48*time.Second, details.ProductionDuration)
+	assert.Equal(t, int64(34), details.Level)
+	assert.Equal(t, int64(120594), details.Price.Metal)
+	assert.Equal(t, int64(34455), details.Price.Crystal)
+	assert.Equal(t, int64(0), details.Price.Deuterium)
+	assert.Equal(t, int64(0), details.Price.Population)
+	assert.True(t, details.TearDownEnabled)
+
+	pageHTMLBytes, _ = ioutil.ReadFile("../../../samples/v9.0.4/en/lifeform/technologyDetails_lfbuilding_teardown_disabled.html")
+	details, _ = NewExtractor().ExtractTechnologyDetails(pageHTMLBytes)
+	assert.False(t, details.TearDownEnabled)
+
+	pageHTMLBytes, _ = ioutil.ReadFile("../../../samples/v9.0.4/en/lifeform/technologyDetails_supplies.html")
+	details, _ = NewExtractor().ExtractTechnologyDetails(pageHTMLBytes)
+	assert.True(t, details.TearDownEnabled)
+}
+
+func TestExtractOverviewProduction_ships(t *testing.T) {
+	pageHTMLBytes, _ := ioutil.ReadFile("../../../samples/v9.0.5/en/overview_ships.html")
+	prod, _, _ := NewExtractor().ExtractOverviewProduction(pageHTMLBytes)
+	assert.Equal(t, 2, len(prod))
+	assert.Equal(t, ogame.SmallCargoID, prod[0].ID)
+	assert.Equal(t, int64(1), prod[0].Nbr)
+	assert.Equal(t, ogame.SmallCargoID, prod[1].ID)
+	assert.Equal(t, int64(1), prod[1].Nbr)
 }

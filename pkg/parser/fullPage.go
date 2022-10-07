@@ -1,8 +1,9 @@
 package parser
 
 import (
-	"github.com/alaingilbert/ogame/pkg/ogame"
 	"time"
+
+	"github.com/alaingilbert/ogame/pkg/ogame"
 )
 
 func (p FullPage) ExtractOGameSession() string {

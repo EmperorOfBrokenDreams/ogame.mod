@@ -2,6 +2,8 @@ package v9
 
 import (
 	"bytes"
+	"encoding/json"
+	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/alaingilbert/clockwork"
@@ -17,6 +19,38 @@ type Extractor struct {
 // NewExtractor ...
 func NewExtractor() *Extractor {
 	return &Extractor{}
+}
+
+// ExtractTechnologyDetailsFromDoc ...
+func (e *Extractor) ExtractTechnologyDetailsFromDoc(doc *goquery.Document) (ogame.TechnologyDetails, error) {
+	return extractTechnologyDetailsFromDoc(doc)
+}
+
+type technologyDetailsStruct struct {
+	Target  string `json:"target"`
+	Content struct {
+		Technologydetails string `json:"technologydetails"`
+	} `json:"content"`
+	Files struct {
+		Js  []string `json:"js"`
+		CSS []string `json:"css"`
+	} `json:"files"`
+	Page struct {
+		StateObj string `json:"stateObj"`
+		Title    string `json:"title"`
+		URL      string `json:"url"`
+	} `json:"page"`
+	ServerTime int `json:"serverTime"`
+}
+
+// ExtractTechnologyDetails ...
+func (e *Extractor) ExtractTechnologyDetails(pageHTML []byte) (out ogame.TechnologyDetails, err error) {
+	var technologyDetails technologyDetailsStruct
+	if err := json.Unmarshal(pageHTML, &technologyDetails); err != nil {
+		return out, err
+	}
+	doc, _ := goquery.NewDocumentFromReader(strings.NewReader(technologyDetails.Content.Technologydetails))
+	return e.ExtractTechnologyDetailsFromDoc(doc)
 }
 
 // ExtractCancelLfBuildingInfos ...
@@ -44,7 +78,7 @@ func (e *Extractor) ExtractOverviewProduction(pageHTML []byte) ([]ogame.Quantifi
 
 // ExtractOverviewProductionFromDoc extracts ships/defenses (partial) production from the overview page
 func (e *Extractor) ExtractOverviewProductionFromDoc(doc *goquery.Document) ([]ogame.Quantifiable, error) {
-	return extractOverviewProductionFromDoc(doc)
+	return extractOverviewProductionFromDoc(doc, e.GetLifeformEnabled())
 }
 
 // ExtractEspionageReport ...
@@ -81,15 +115,45 @@ func (e *Extractor) ExtractResourcesDetailsFromFullPageFromDoc(doc *goquery.Docu
 }
 
 // ExtractConstructions ...
-func (e *Extractor) ExtractConstructions(pageHTML []byte) (buildingID ogame.ID, buildingCountdown int64, researchID ogame.ID, researchCountdown int64) {
+func (e *Extractor) ExtractConstructions(pageHTML []byte) (buildingID ogame.ID, buildingCountdown int64, researchID ogame.ID, researchCountdown int64, lfBuildingID ogame.ID, lfBuildingCountdown int64, lfResearchID ogame.ID, lfResearchCountdown int64) {
 	return ExtractConstructions(pageHTML, clockwork.NewRealClock())
 }
 
+// ExtractResourceSettings ...
 func (e *Extractor) ExtractResourceSettings(pageHTML []byte) (ogame.ResourceSettings, string, error) {
 	doc, _ := goquery.NewDocumentFromReader(bytes.NewReader(pageHTML))
 	return e.ExtractResourceSettingsFromDoc(doc)
 }
 
-func (e *Extractor) ExtractResourceSettingsFromDoc(doc *goquery.Document) (ogame.ResourceSettings, string, error) {
-	return extractResourceSettingsFromDoc(doc)
+// ExtractLfBuildings ...
+func (e *Extractor) ExtractLfBuildings(pageHTML []byte) (ogame.LfBuildings, error) {
+	doc, _ := goquery.NewDocumentFromReader(bytes.NewReader(pageHTML))
+	return e.ExtractLfBuildingsFromDoc(doc)
+}
+
+// ExtractLfBuildingsFromDoc ...
+func (e *Extractor) ExtractLfBuildingsFromDoc(doc *goquery.Document) (ogame.LfBuildings, error) {
+	return extractLfBuildingsFromDoc(doc)
+}
+
+// ExtractLfResearch ...
+func (e *Extractor) ExtractLfResearch(pageHTML []byte) (ogame.LfResearches, error) {
+	doc, _ := goquery.NewDocumentFromReader(bytes.NewReader(pageHTML))
+	return e.ExtractLfResearchFromDoc(doc)
+}
+
+// ExtractLfResearchFromDoc ...
+func (e *Extractor) ExtractLfResearchFromDoc(doc *goquery.Document) (ogame.LfResearches, error) {
+	return extractLfResearchFromDoc(doc)
+}
+
+// ExtractTearDownButtonEnabled ...
+func (e *Extractor) ExtractTearDownButtonEnabled(pageHTML []byte) bool {
+	doc, _ := goquery.NewDocumentFromReader(bytes.NewReader(pageHTML))
+	return e.ExtractTearDownButtonEnabledFromDoc(doc)
+}
+
+// ExtractTearDownButtonEnabledFromDoc ...
+func (e *Extractor) ExtractTearDownButtonEnabledFromDoc(doc *goquery.Document) bool {
+	return extractTearDownButtonEnabledFromDoc(doc)
 }

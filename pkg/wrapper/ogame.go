@@ -2881,6 +2881,24 @@ func (b *OGame) getResourcesBuildings(celestialID ogame.CelestialID, options ...
 	return page.ExtractResourcesBuildings()
 }
 
+func (b *OGame) getLfBuildings(celestialID ogame.CelestialID, options ...Option) (ogame.LfBuildings, error) {
+	options = append(options, ChangePlanet(celestialID))
+	page, err := getPage[parser.LfBuildingsPage](b, options...)
+	if err != nil {
+		return ogame.LfBuildings{}, err
+	}
+	return page.ExtractLfBuildings()
+}
+
+func (b *OGame) getLfResearch(celestialID ogame.CelestialID, options ...Option) (ogame.LfResearches, error) {
+	options = append(options, ChangePlanet(celestialID))
+	page, err := getPage[parser.LfResearchPage](b, options...)
+	if err != nil {
+		return ogame.LfResearches{}, err
+	}
+	return page.ExtractLfResearch()
+}
+
 func (b *OGame) getDefense(celestialID ogame.CelestialID, options ...Option) (ogame.DefensesInfos, error) {
 	options = append(options, ChangePlanet(celestialID))
 	page, err := getPage[parser.DefensesPage](b, options...)
@@ -2908,11 +2926,11 @@ func (b *OGame) getFacilities(celestialID ogame.CelestialID, options ...Option) 
 	return page.ExtractFacilities()
 }
 
-func (b *OGame) getTechs(celestialID ogame.CelestialID) (ogame.ResourcesBuildings, ogame.Facilities, ogame.ShipsInfos, ogame.DefensesInfos, ogame.Researches, error) {
+func (b *OGame) getTechs(celestialID ogame.CelestialID) (ogame.ResourcesBuildings, ogame.Facilities, ogame.ShipsInfos, ogame.DefensesInfos, ogame.Researches, ogame.LfBuildings, error) {
 	vals := url.Values{"page": {FetchTechsName}}
 	page, err := getAjaxPage[parser.FetchTechsAjaxPage](b, vals, ChangePlanet(celestialID))
 	if err != nil {
-		return ogame.ResourcesBuildings{}, ogame.Facilities{}, ogame.ShipsInfos{}, ogame.DefensesInfos{}, ogame.Researches{}, err
+		return ogame.ResourcesBuildings{}, ogame.Facilities{}, ogame.ShipsInfos{}, ogame.DefensesInfos{}, ogame.Researches{}, ogame.LfBuildings{}, err
 	}
 	return page.ExtractTechs()
 }
@@ -2938,6 +2956,18 @@ func (b *OGame) IsV8() bool {
 // IsV9 ...
 func (b *OGame) IsV9() bool {
 	return len(b.ServerVersion()) > 0 && b.ServerVersion()[0] == '9'
+}
+
+func (b *OGame) technologyDetails(celestialID ogame.CelestialID, id ogame.ID) (ogame.TechnologyDetails, error) {
+	pageHTML, _ := b.getPageContent(url.Values{
+		"page":       {"ingame"},
+		"component":  {"technologydetails"},
+		"ajax":       {"1"},
+		"action":     {"getDetails"},
+		"technology": {utils.FI64(id)},
+		"cp":         {utils.FI64(celestialID)},
+	})
+	return b.extractor.ExtractTechnologyDetails(pageHTML)
 }
 
 func getToken(b *OGame, page string, celestialID ogame.CelestialID) (string, error) {
@@ -2993,7 +3023,9 @@ func (b *OGame) build(celestialID ogame.CelestialID, id ogame.ID, nbr int64) err
 	} else if id.IsShip() {
 		page = ShipyardPageName
 	} else if id.IsLfBuilding() {
-		page = LfbuildingsPageName
+		page = LfBuildingsPageName
+	} else if id.IsLfTech() {
+		page = LfResearchPageName
 	} else if id.IsBuilding() {
 		page = SuppliesPageName
 	} else if id.IsTech() {
@@ -3041,7 +3073,7 @@ func (b *OGame) build(celestialID ogame.CelestialID, id ogame.ID, nbr int64) err
 }
 
 func (b *OGame) buildCancelable(celestialID ogame.CelestialID, id ogame.ID) error {
-	if !id.IsBuilding() && !id.IsTech() {
+	if !id.IsBuilding() && !id.IsTech() && !id.IsLfBuilding() && !id.IsLfTech() {
 		return errors.New("invalid id " + id.String())
 	}
 	return b.build(celestialID, id, 0)
@@ -3062,7 +3094,7 @@ func (b *OGame) buildBuilding(celestialID ogame.CelestialID, buildingID ogame.ID
 }
 
 func (b *OGame) buildTechnology(celestialID ogame.CelestialID, technologyID ogame.ID) error {
-	if !technologyID.IsTech() {
+	if !technologyID.IsTech() && !technologyID.IsLfTech() {
 		return errors.New("invalid technology id " + technologyID.String())
 	}
 	return b.buildCancelable(celestialID, technologyID)
@@ -3082,10 +3114,10 @@ func (b *OGame) buildShips(celestialID ogame.CelestialID, shipID ogame.ID, nbr i
 	return b.buildProduction(celestialID, shipID, nbr)
 }
 
-func (b *OGame) constructionsBeingBuilt(celestialID ogame.CelestialID) (ogame.ID, int64, ogame.ID, int64) {
+func (b *OGame) constructionsBeingBuilt(celestialID ogame.CelestialID) (ogame.ID, int64, ogame.ID, int64, ogame.ID, int64, ogame.ID, int64) {
 	page, err := getPage[parser.OverviewPage](b, ChangePlanet(celestialID))
 	if err != nil {
-		return ogame.ID(0), 0, ogame.ID(0), 0
+		return ogame.ID(0), 0, ogame.ID(0), 0, ogame.ID(0), 0, ogame.ID(0), 0
 	}
 	return page.ExtractConstructions()
 }
@@ -3142,6 +3174,8 @@ func (b *OGame) getResources(celestialID ogame.CelestialID) (ogame.Resources, er
 		Deuterium:  res.Deuterium.Available,
 		Energy:     res.Energy.Available,
 		Darkmatter: res.Darkmatter.Available,
+		Population: res.Population.Available,
+		Food:       res.Food.Available,
 	}, nil
 }
 
@@ -4471,6 +4505,11 @@ func (b *OGame) Build(celestialID ogame.CelestialID, id ogame.ID, nbr int64) err
 	return b.WithPriority(taskRunner.Normal).Build(celestialID, id, nbr)
 }
 
+// TechnologyDetails extract details from ajax window when clicking supplies/facilities/techs/lf...
+func (b *OGame) TechnologyDetails(celestialID ogame.CelestialID, id ogame.ID) (ogame.TechnologyDetails, error) {
+	return b.WithPriority(taskRunner.Normal).TechnologyDetails(celestialID, id)
+}
+
 // TearDown tears down any ogame building
 func (b *OGame) TearDown(celestialID ogame.CelestialID, id ogame.ID) error {
 	return b.WithPriority(taskRunner.Normal).TearDown(celestialID, id)
@@ -4502,7 +4541,7 @@ func (b *OGame) BuildShips(celestialID ogame.CelestialID, shipID ogame.ID, nbr i
 }
 
 // ConstructionsBeingBuilt returns the building & research being built, and the time remaining (secs)
-func (b *OGame) ConstructionsBeingBuilt(celestialID ogame.CelestialID) (ogame.ID, int64, ogame.ID, int64) {
+func (b *OGame) ConstructionsBeingBuilt(celestialID ogame.CelestialID) (ogame.ID, int64, ogame.ID, int64, ogame.ID, int64, ogame.ID, int64) {
 	return b.WithPriority(taskRunner.Normal).ConstructionsBeingBuilt(celestialID)
 }
 
@@ -4537,7 +4576,7 @@ func (b *OGame) GetResourcesDetails(celestialID ogame.CelestialID) (ogame.Resour
 }
 
 // GetTechs gets a celestial supplies/facilities/ships/researches
-func (b *OGame) GetTechs(celestialID ogame.CelestialID) (ogame.ResourcesBuildings, ogame.Facilities, ogame.ShipsInfos, ogame.DefensesInfos, ogame.Researches, error) {
+func (b *OGame) GetTechs(celestialID ogame.CelestialID) (ogame.ResourcesBuildings, ogame.Facilities, ogame.ShipsInfos, ogame.DefensesInfos, ogame.Researches, ogame.LfBuildings, error) {
 	return b.WithPriority(taskRunner.Normal).GetTechs(celestialID)
 }
 
@@ -4780,4 +4819,14 @@ func (b *OGame) OfferSellMarketplace(itemID any, quantity, priceType, price, pri
 // OfferBuyMarketplace buy offer on marketplace
 func (b *OGame) OfferBuyMarketplace(itemID any, quantity, priceType, price, priceRange int64, celestialID ogame.CelestialID) error {
 	return b.WithPriority(taskRunner.Normal).OfferBuyMarketplace(itemID, quantity, priceType, price, priceRange, celestialID)
+}
+
+// GetLfBuildings ...
+func (b *OGame) GetLfBuildings(celestialID ogame.CelestialID, opts ...Option) (ogame.LfBuildings, error) {
+	return b.WithPriority(taskRunner.Normal).GetLfBuildings(celestialID, opts...)
+}
+
+// GetLfResearch ...
+func (b *OGame) GetLfResearch(celestialID ogame.CelestialID, opts ...Option) (ogame.LfResearches, error) {
+	return b.WithPriority(taskRunner.Normal).GetLfResearch(celestialID, opts...)
 }

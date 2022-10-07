@@ -245,7 +245,9 @@ func start(c *cli.Context) error {
 	// CAPTCHA Handler
 	e.GET("/bot/captcha", wrapper.GetCaptchaHandler)
 	e.POST("/bot/captcha/solve", wrapper.GetCaptchaSolverHandler)
+	e.GET("/bot/captcha/challenge", wrapper.GetCaptchaChallengeHandler)
 
+	e.GET("/bot/ip", wrapper.GetPublicIPHandler)
 	e.GET("/bot/server", wrapper.GetServerHandler)
 	e.GET("/bot/server-data", wrapper.GetServerDataHandler)
 	e.POST("/bot/set-user-agent", wrapper.SetUserAgentHandler)
@@ -287,6 +289,7 @@ func start(c *cli.Context) error {
 	e.GET("/bot/get-research", wrapper.GetResearchHandler)
 	e.GET("/bot/buy-offer-of-the-day", wrapper.BuyOfferOfTheDayHandler)
 	e.GET("/bot/price/:ogameID/:nbr", wrapper.GetPriceHandler)
+	e.GET("/bot/requirements/:ogameID", wrapper.GetRequirementsHandler)
 	e.GET("/bot/moons", wrapper.GetMoonsHandler)
 	e.GET("/bot/moons/:moonID", wrapper.GetMoonHandler)
 	e.GET("/bot/moons/:galaxy/:system/:position", wrapper.GetMoonByCoordHandler)
@@ -300,6 +303,8 @@ func start(c *cli.Context) error {
 	e.GET("/bot/planets/:planetID/resource-settings", wrapper.GetResourceSettingsHandler)
 	e.POST("/bot/planets/:planetID/resource-settings", wrapper.SetResourceSettingsHandler)
 	e.GET("/bot/planets/:planetID/resources-buildings", wrapper.GetResourcesBuildingsHandler)
+	e.GET("/bot/planets/:planetID/lifeform-buildings", wrapper.GetLfBuildingsHandler)
+	e.GET("/bot/planets/:planetID/lifeform-techs", wrapper.GetLfResearchHandler)
 	e.GET("/bot/planets/:planetID/defence", wrapper.GetDefenseHandler)
 	e.GET("/bot/planets/:planetID/ships", wrapper.GetShipsHandler)
 	e.GET("/bot/planets/:planetID/facilities", wrapper.GetFacilitiesHandler)

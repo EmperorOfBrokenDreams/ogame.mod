@@ -75,7 +75,7 @@ type OverviewExtractorBytes interface {
 	ExtractCancelLfBuildingInfos(pageHTML []byte) (token string, id, listID int64, err error)
 	ExtractCancelResearchInfos(pageHTML []byte) (token string, techID, listID int64, err error)
 	ExtractCharacterClass(pageHTML []byte) (ogame.CharacterClass, error)
-	ExtractConstructions(pageHTML []byte) (buildingID ogame.ID, buildingCountdown int64, researchID ogame.ID, researchCountdown int64)
+	ExtractConstructions(pageHTML []byte) (buildingID ogame.ID, buildingCountdown int64, researchID ogame.ID, researchCountdown int64, lfBuildingID ogame.ID, lfBuildingCountdown int64, lfResearchID ogame.ID, lfResearchCountdown int64)
 	ExtractDMCosts(pageHTML []byte) (ogame.DMCosts, error)
 	ExtractFleetDeutSaveFactor(pageHTML []byte) float64
 	ExtractOverviewProduction(pageHTML []byte) ([]ogame.Quantifiable, int64, error)
@@ -356,7 +356,7 @@ type TraderImportExportExtractorDoc interface {
 
 // FetchTechsExtractorBytes ajax page fetchTechs
 type FetchTechsExtractorBytes interface {
-	ExtractTechs(pageHTML []byte) (ogame.ResourcesBuildings, ogame.Facilities, ogame.ShipsInfos, ogame.DefensesInfos, ogame.Researches, error)
+	ExtractTechs(pageHTML []byte) (ogame.ResourcesBuildings, ogame.Facilities, ogame.ShipsInfos, ogame.DefensesInfos, ogame.Researches, ogame.LfBuildings, error)
 }
 
 type ResourcesSettingsExtractorBytes interface {
@@ -411,10 +411,30 @@ type MessagesMarketplaceExtractorBytes interface {
 
 type LfBuildingsExtractorBytes interface {
 	ExtractUpgradeToken(pageHTML []byte) (string, error)
+	ExtractLfBuildings(pageHTML []byte) (ogame.LfBuildings, error)
+}
+
+type LfBuildingsExtractorDoc interface {
+	ExtractLfBuildingsFromDoc(doc *goquery.Document) (ogame.LfBuildings, error)
 }
 
 type LfBuildingsExtractorBytesDoc interface {
 	LfBuildingsExtractorBytes
+	LfBuildingsExtractorDoc
+}
+
+type LfResearchExtractorBytes interface {
+	ExtractUpgradeToken(pageHTML []byte) (string, error)
+	ExtractLfResearch(pageHTML []byte) (ogame.LfResearches, error)
+}
+
+type LfResearchExtractorDoc interface {
+	ExtractLfResearchFromDoc(doc *goquery.Document) (ogame.LfResearches, error)
+}
+
+type LfResearchExtractorBytesDoc interface {
+	LfResearchExtractorBytes
+	LfResearchExtractorDoc
 }
 
 // ResourcesBuildingsExtractorBytes supplies page
@@ -443,11 +463,13 @@ type PlanetLayerExtractorDoc interface {
 }
 
 type TechnologyDetailsExtractorBytes interface {
+	ExtractTechnologyDetails(pageHTML []byte) (ogame.TechnologyDetails, error)
 	ExtractTearDownButtonEnabled(pageHTML []byte) bool
 }
 
 type TechnologyDetailsExtractorDoc interface {
 	ExtractTearDownButtonEnabledFromDoc(doc *goquery.Document) bool
+	ExtractTechnologyDetailsFromDoc(doc *goquery.Document) (ogame.TechnologyDetails, error)
 }
 
 type TechnologyDetailsExtractorBytesDoc interface {
@@ -472,6 +494,7 @@ type Extractor interface {
 	FullPageExtractorBytesDoc
 	HighscoreExtractorBytesDoc
 	LfBuildingsExtractorBytesDoc
+	LfResearchExtractorBytesDoc
 	MessagesCombatReportExtractorBytesDoc
 	MessagesEspionageReportExtractorBytesDoc
 	MessagesExpeditionExtractorBytesDoc

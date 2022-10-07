@@ -3,9 +3,10 @@ package v6
 import (
 	"bytes"
 	"errors"
-	"github.com/alaingilbert/ogame/pkg/ogame"
 	"net/url"
 	"time"
+
+	"github.com/alaingilbert/ogame/pkg/ogame"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/alaingilbert/clockwork"
@@ -42,6 +43,16 @@ func (e *Extractor) GetLanguage() string {
 	return e.lang
 }
 
+// ExtractTechnologyDetails ...
+func (e *Extractor) ExtractTechnologyDetails(pageHTML []byte) (out ogame.TechnologyDetails, err error) {
+	panic("implement me")
+}
+
+// ExtractTechnologyDetailsFromDoc ...
+func (e *Extractor) ExtractTechnologyDetailsFromDoc(doc *goquery.Document) (ogame.TechnologyDetails, error) {
+	panic("implement me")
+}
+
 func (e *Extractor) ExtractCancelLfBuildingInfos(pageHTML []byte) (token string, id, listID int64, err error) {
 	panic("implement me")
 }
@@ -57,7 +68,7 @@ func (e *Extractor) ExtractPremiumToken(pageHTML []byte, days int64) (string, er
 }
 
 // ExtractTechs ...
-func (e *Extractor) ExtractTechs(pageHTML []byte) (ogame.ResourcesBuildings, ogame.Facilities, ogame.ShipsInfos, ogame.DefensesInfos, ogame.Researches, error) {
+func (e *Extractor) ExtractTechs(pageHTML []byte) (ogame.ResourcesBuildings, ogame.Facilities, ogame.ShipsInfos, ogame.DefensesInfos, ogame.Researches, ogame.LfBuildings, error) {
 	panic("implement me")
 }
 
@@ -546,7 +557,7 @@ func (e *Extractor) ExtractFleetsFromDoc(doc *goquery.Document) (res []ogame.Fle
 }
 
 func (e *Extractor) extractFleetsFromDoc(doc *goquery.Document, location *time.Location) (res []ogame.Fleet) {
-	return extractFleetsFromDoc(doc, location)
+	return extractFleetsFromDoc(doc, location, e.lifeformEnabled)
 }
 
 // ExtractSlotsFromDoc extract fleet slots from page "fleet1"
@@ -808,7 +819,7 @@ func (e *Extractor) ExtractFederation(pageHTML []byte) url.Values {
 }
 
 // ExtractConstructions ...
-func (e *Extractor) ExtractConstructions(pageHTML []byte) (buildingID ogame.ID, buildingCountdown int64, researchID ogame.ID, researchCountdown int64) {
+func (e *Extractor) ExtractConstructions(pageHTML []byte) (buildingID ogame.ID, buildingCountdown int64, researchID ogame.ID, researchCountdown int64, lfBuildingID ogame.ID, lfBuildingCountdown int64, lfResearchID ogame.ID, lfResearchCountdown int64) {
 	return extractConstructions(pageHTML)
 }
 
@@ -880,5 +891,25 @@ func (e *Extractor) ExtractIsMobile(pageHTML []byte) bool {
 
 // ExtractIsMobileFromDoc ...
 func (e *Extractor) ExtractIsMobileFromDoc(doc *goquery.Document) bool {
+	panic("not implemented")
+}
+
+// ExtractLfBuildings ...
+func (e *Extractor) ExtractLfBuildings(pageHTML []byte) (ogame.LfBuildings, error) {
+	panic("not implemented")
+}
+
+// ExtractLfBuildingsFromDoc ...
+func (e *Extractor) ExtractLfBuildingsFromDoc(doc *goquery.Document) (ogame.LfBuildings, error) {
+	panic("not implemented")
+}
+
+// ExtractLfResearch ...
+func (e *Extractor) ExtractLfResearch(pageHTML []byte) (ogame.LfResearches, error) {
+	panic("not implemented")
+}
+
+// ExtractLfResearchFromDoc ...
+func (e *Extractor) ExtractLfResearchFromDoc(doc *goquery.Document) (ogame.LfResearches, error) {
 	panic("not implemented")
 }
