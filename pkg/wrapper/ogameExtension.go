@@ -1331,67 +1331,67 @@ func (b *OGame) buyItem(ref string, celestialID ogame.CelestialID) error {
 	return err
 }
 
-func (b *OGame) SetPreferences() error {
-	payload := url.Values{}
-	payload.Add("page", "ingame")
-	payload.Add("component", PreferencesPageName)
+// func (b *OGame) SetPreferences() error {
+// 	payload := url.Values{}
+// 	payload.Add("page", "ingame")
+// 	payload.Add("component", PreferencesPageName)
 
-	p := b.BeginNamed("SetPreferences")
-	defer p.Done()
-	pageHTML, err := p.GetPageContent(payload) // Will update preferences cached values
-	if err != nil {
-		return err
-	}
-	var changeSettingsToken string
-	doc, _ := goquery.NewDocumentFromReader(bytes.NewReader(pageHTML))
-	if doc.Find("form#prefs input").Eq(2).AttrOr("name", "") == "token" {
-		changeSettingsToken = doc.Find("form#prefs input").Eq(2).AttrOr("value", "")
-	}
-	if changeSettingsToken == "" {
-		return errors.New("Token not found")
-	}
-	//#prefs > input:nth-child(3)
-	//    var changeSettingsToken = "aaa71ec0484386d40100ad6a93950aa1";
-	// r := regexp.MustCompile(`var changeSettingsToken = "([^"]+)"`)
-	// m := r.FindStringSubmatch(string(pageHTML))
-	// if len(m) != 2 {
-	// 	err := errors.New("failed to find buy token")
-	// 	return err
-	// }
-	// changeSettingsToken := m[1]
+// 	p := b.BeginNamed("SetPreferences")
+// 	defer p.Done()
+// 	pageHTML, err := p.GetPageContent(payload) // Will update preferences cached values
+// 	if err != nil {
+// 		return err
+// 	}
+// 	var changeSettingsToken string
+// 	doc, _ := goquery.NewDocumentFromReader(bytes.NewReader(pageHTML))
+// 	if doc.Find("form#prefs input").Eq(2).AttrOr("name", "") == "token" {
+// 		changeSettingsToken = doc.Find("form#prefs input").Eq(2).AttrOr("value", "")
+// 	}
+// 	if changeSettingsToken == "" {
+// 		return errors.New("Token not found")
+// 	}
+// 	//#prefs > input:nth-child(3)
+// 	//    var changeSettingsToken = "aaa71ec0484386d40100ad6a93950aa1";
+// 	// r := regexp.MustCompile(`var changeSettingsToken = "([^"]+)"`)
+// 	// m := r.FindStringSubmatch(string(pageHTML))
+// 	// if len(m) != 2 {
+// 	// 	err := errors.New("failed to find buy token")
+// 	// 	return err
+// 	// }
+// 	// changeSettingsToken := m[1]
 
-	fmt.Println("changeSettingsToken::", changeSettingsToken)
+// 	fmt.Println("changeSettingsToken::", changeSettingsToken)
 
-	// POST https://s180-de.ogame.gameforge.com/game/index.php?page=ingame&component=preferences
+// 	// POST https://s180-de.ogame.gameforge.com/game/index.php?page=ingame&component=preferences
 
-	payloadData := url.Values{}
-	payloadData.Add("mode", "save")
-	payloadData.Add("selectedTab", "0")
-	payloadData.Add("token", changeSettingsToken)
-	//payloadData.Add("db_character", "")
-	payloadData.Add("spio_anz", "1")
-	payloadData.Add("spySystemAutomaticQuantity", "1")
-	payloadData.Add("spySystemTargetPlanetTypes", "0")
-	payloadData.Add("spySystemTargetPlayerTypes", "0")
-	payloadData.Add("spySystemIgnoreSpiedInLastXMinutes", "0")
-	payloadData.Add("activateAutofocus", "on")
-	payloadData.Add("eventsShow", "2")
-	payloadData.Add("settings_sort", "0")
-	payloadData.Add("settings_order", "0")
-	payloadData.Add("showDetailOverlay", "on")
-	//payloadData.Add("animatedSliders", "off")
-	//payloadData.Add("animatedOverview", "off")
-	payloadData.Add("msgResultsPerPage", "50")
-	payloadData.Add("auctioneerNotifications", "on")
-	payloadData.Add("showActivityMinutes", "1")
+// 	payloadData := url.Values{}
+// 	payloadData.Add("mode", "save")
+// 	payloadData.Add("selectedTab", "0")
+// 	payloadData.Add("token", changeSettingsToken)
+// 	//payloadData.Add("db_character", "")
+// 	payloadData.Add("spio_anz", "1")
+// 	payloadData.Add("spySystemAutomaticQuantity", "1")
+// 	payloadData.Add("spySystemTargetPlanetTypes", "0")
+// 	payloadData.Add("spySystemTargetPlayerTypes", "0")
+// 	payloadData.Add("spySystemIgnoreSpiedInLastXMinutes", "0")
+// 	payloadData.Add("activateAutofocus", "on")
+// 	payloadData.Add("eventsShow", "2")
+// 	payloadData.Add("settings_sort", "0")
+// 	payloadData.Add("settings_order", "0")
+// 	payloadData.Add("showDetailOverlay", "on")
+// 	//payloadData.Add("animatedSliders", "off")
+// 	//payloadData.Add("animatedOverview", "off")
+// 	payloadData.Add("msgResultsPerPage", "50")
+// 	payloadData.Add("auctioneerNotifications", "on")
+// 	payloadData.Add("showActivityMinutes", "1")
 
-	_, err = p.PostPageContent(payload, payloadData)
-	if err != nil {
-		return err
-	}
+// 	_, err = p.PostPageContent(payload, payloadData)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 // CalcFlightTime ...
 func CalcFlightTime2(origin, destination ogame.Coordinate, universeSize, nbSystems int64, donutGalaxy, donutSystem bool,
