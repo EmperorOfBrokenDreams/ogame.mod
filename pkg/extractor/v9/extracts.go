@@ -3,6 +3,7 @@ package v9
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -91,7 +92,53 @@ func extractEmpire(pageHTML []byte) ([]ogame.EmpireCelestial, error) {
 		energyStr := utils.DoCastStr(planet["energy"])
 		energyDoc, _ := goquery.NewDocumentFromReader(strings.NewReader(energyStr))
 		energy := utils.ParseInt(energyDoc.Find("div span").Text())
+
+		energyProductionTitel := energyDoc.Find("div").AttrOr("title", "")
+		energyProductionDoc, _ := goquery.NewDocumentFromReader(strings.NewReader(energyProductionTitel))
+		energyProduction := utils.ParseInt(energyProductionDoc.Find("span").Text())
+
+		resourcesDetails := ogame.ResourcesDetails{}
+		resourcesDetails.Energy.CurrentProduction = energyProduction
+		if energy < 0 {
+			resourcesDetails.Energy.Consumption = energyProduction + energy
+		} else {
+			resourcesDetails.Energy.Consumption = energyProduction - energy
+		}
+
+		if reflect.TypeOf(planet["production"].(map[string]any)["hourly"]) == reflect.TypeOf([]any{}) {
+			resourcesDetails.Metal.CurrentProduction = int64(utils.DoCastF64(planet["production"].(map[string]any)["hourly"].([]any)[0]))
+			resourcesDetails.Crystal.CurrentProduction = int64(utils.DoCastF64(planet["production"].(map[string]any)["hourly"].([]any)[1]))
+			resourcesDetails.Deuterium.CurrentProduction = int64(utils.DoCastF64(planet["production"].(map[string]any)["hourly"].([]any)[2]))
+		} else {
+			resourcesDetails.Metal.CurrentProduction = int64(utils.DoCastF64(planet["production"].(map[string]any)["hourly"].(map[string]any)["0"]))
+			resourcesDetails.Crystal.CurrentProduction = int64(utils.DoCastF64(planet["production"].(map[string]any)["hourly"].(map[string]any)["1"]))
+			resourcesDetails.Deuterium.CurrentProduction = int64(utils.DoCastF64(planet["production"].(map[string]any)["hourly"].(map[string]any)["2"]))
+			resourcesDetails.Population.GrowthRate = utils.DoCastF64(planet["production"].(map[string]any)["hourly"].(map[string]any)["5"])
+			resourcesDetails.Food.Overproduction = int64(utils.DoCastF64(planet["production"].(map[string]any)["hourly"].(map[string]any)["6"]))
+		}
+
+		if reflect.TypeOf(planet["production"].(map[string]any)["resources"]) == reflect.TypeOf([]any{}) {
+			resourcesDetails.Metal.Available = int64(utils.DoCastF64(planet["production"].(map[string]any)["resources"].([]any)[0]))
+			resourcesDetails.Crystal.Available = int64(utils.DoCastF64(planet["production"].(map[string]any)["resources"].([]any)[1]))
+			resourcesDetails.Deuterium.Available = int64(utils.DoCastF64(planet["production"].(map[string]any)["resources"].([]any)[2]))
+			resourcesDetails.Energy.Available = int64(utils.DoCastF64(planet["production"].(map[string]any)["resources"].([]any)[3]))
+		} else {
+			resourcesDetails.Metal.Available = int64(utils.DoCastF64(planet["production"].(map[string]any)["resources"].(map[string]any)["0"]))
+			resourcesDetails.Crystal.Available = int64(utils.DoCastF64(planet["production"].(map[string]any)["resources"].(map[string]any)["1"]))
+			resourcesDetails.Deuterium.Available = int64(utils.DoCastF64(planet["production"].(map[string]any)["resources"].(map[string]any)["2"]))
+			resourcesDetails.Energy.Available = int64(utils.DoCastF64(planet["production"].(map[string]any)["resources"].(map[string]any)["3"]))
+			resourcesDetails.Food.Available = int64(utils.DoCastF64(planet["production"].(map[string]any)["resources"].(map[string]any)["6"]))
+			resourcesDetails.Population.Available = int64(utils.DoCastF64(planet["production"].(map[string]any)["resources"].(map[string]any)["5"]))
+		}
+
+		resourcesDetails.Metal.StorageCapacity = int64(utils.DoCastF64(planet["production"].(map[string]any)["storage"].(map[string]any)["0"]))
+		resourcesDetails.Crystal.StorageCapacity = int64(utils.DoCastF64(planet["production"].(map[string]any)["storage"].(map[string]any)["1"]))
+		resourcesDetails.Deuterium.StorageCapacity = int64(utils.DoCastF64(planet["production"].(map[string]any)["storage"].(map[string]any)["2"]))
+		resourcesDetails.Population.LivingSpace = int64(utils.DoCastF64(planet["production"].(map[string]any)["storage"].(map[string]any)["5"]))
+		resourcesDetails.Food.StorageCapacity = int64(utils.DoCastF64(planet["production"].(map[string]any)["storage"].(map[string]any)["6"]))
+
 		celestialType := ogame.CelestialType(utils.DoCastF64(planet["type"]))
+
 		out = append(out, ogame.EmpireCelestial{
 			Name:     utils.DoCastStr(planet["name"]),
 			ID:       ogame.CelestialID(utils.DoCastF64(planet["id"])),
@@ -118,6 +165,7 @@ func extractEmpire(pageHTML []byte) ([]ogame.EmpireCelestial, error) {
 				Deuterium: int64(utils.DoCastF64(planet["deuterium"])),
 				Energy:    energy,
 			},
+			ResourcesDetails: resourcesDetails,
 			Supplies: ogame.ResourcesBuildings{
 				MetalMine:            int64(utils.DoCastF64(planet["1"])),
 				CrystalMine:          int64(utils.DoCastF64(planet["2"])),

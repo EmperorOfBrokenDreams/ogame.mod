@@ -59,7 +59,7 @@ func (c *Client) Requests() int64 {
 
 // NewClient ...
 func NewClient() *Client {
-	rl := rate.NewLimiter(rate.Every(1*time.Second), 10) // 10 request every 1 seconds
+	rl := rate.NewLimiter(rate.Every(0*time.Second), 6) // 60 request every 10 seconds
 	client := &Client{
 		Client: &http.Client{
 			Timeout: 60 * time.Second,

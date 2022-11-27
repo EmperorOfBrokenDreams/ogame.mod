@@ -73,7 +73,7 @@ func HTMLCleaner(bot *OGame, method string, url1 string, params url.Values, payl
 		lastActiveCelestialIDMu.Unlock()
 	}
 
-	if (IsKnowFullPage(params) || len(params) == 0) && !IsAjaxPage(params) {
+	if (IsKnowFullPage(params) || IsEmpirePage(params) || len(params) == 0) && !IsAjaxPage(params) {
 		doc, _ := goquery.NewDocumentFromReader(bytes.NewReader(pageHTML))
 		node, _ := html.Parse(strings.NewReader(`<style>.cookiebanner1 {display: none;}\n.cookiebanner2 {display: none;}\n.cookiebanner3 {display: none;}</style>`))
 		doc.Find("head").AppendNodes(node)

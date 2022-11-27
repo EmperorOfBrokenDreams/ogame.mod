@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"log"
 	"math"
 	"net/url"
 	"regexp"
@@ -2109,6 +2110,13 @@ func extractEmpire(pageHTML []byte) ([]ogame.EmpireCelestial, error) {
 		energyDoc, _ := goquery.NewDocumentFromReader(strings.NewReader(energyStr))
 		energy := utils.ParseInt(energyDoc.Find("div span").Text())
 		celestialType := ogame.CelestialType(utils.DoCastF64(planet["type"]))
+
+		// 		Available:         int64(utils.DoCastF64(planet["production"].(map[string]any)["resources"].(map[string]any)["0"])),
+		// 		CurrentProduction: int64(utils.DoCastF64(planet["production"].(map[string]any)["hourly"].(map[string]any)["0"])),
+		// 		StorageCapacity:   int64(utils.DoCastF64(planet["production"].(map[string]any)["storage"].(map[string]any)["0"])),
+
+		log.Println(planet["production"].(map[string]any)["storage"].(map[string]any)["0"])
+
 		out = append(out, ogame.EmpireCelestial{
 			Name:     utils.DoCastStr(planet["name"]),
 			ID:       ogame.CelestialID(utils.DoCastF64(planet["id"])),
@@ -2135,6 +2143,45 @@ func extractEmpire(pageHTML []byte) ([]ogame.EmpireCelestial, error) {
 				Deuterium: int64(utils.DoCastF64(planet["deuterium"])),
 				Energy:    energy,
 			},
+			// ResourcesDetails: ogame.ResourcesDetails{
+			// 	Metal: struct {
+			// 		Available         int64
+			// 		StorageCapacity   int64
+			// 		CurrentProduction int64
+			// 	}{
+			// 		Available:         int64(utils.DoCastF64(planet["production"].(map[string]any)["resources"].(map[string]any)["0"])),
+			// 		CurrentProduction: int64(utils.DoCastF64(planet["production"].(map[string]any)["hourly"].(map[string]any)["0"])),
+			// 		StorageCapacity:   int64(utils.DoCastF64(planet["production"].(map[string]any)["storage"].(map[string]any)["0"])),
+			// 	},
+			// 	Crystal: struct {
+			// 		Available         int64
+			// 		StorageCapacity   int64
+			// 		CurrentProduction int64
+			// 	}{
+			// 		Available:         int64(utils.DoCastF64(planet["production"].(map[string]any)["resources"].(map[string]any)["1"])),
+			// 		CurrentProduction: int64(utils.DoCastF64(planet["production"].(map[string]any)["hourly"].(map[string]any)["1"])),
+			// 		StorageCapacity:   int64(utils.DoCastF64(planet["production"].(map[string]any)["storage"].(map[string]any)["1"])),
+			// 	},
+
+			// 	Deuterium: struct {
+			// 		Available         int64
+			// 		StorageCapacity   int64
+			// 		CurrentProduction int64
+			// 	}{
+			// 		Available:         int64(utils.DoCastF64(planet["production"].(map[string]any)["resources"].(map[string]any)["2"])),
+			// 		CurrentProduction: int64(utils.DoCastF64(planet["production"].(map[string]any)["hourly"].(map[string]any)["2"])),
+			// 		StorageCapacity:   int64(utils.DoCastF64(planet["production"].(map[string]any)["storage"].(map[string]any)["3"])),
+			// 	},
+			// 	Energy: struct {
+			// 		Available         int64
+			// 		CurrentProduction int64
+			// 		Consumption       int64
+			// 	}{
+			// 		Available:         int64(utils.DoCastF64(planet["production"].(map[string]any)["hourly"].(map[string]any)["3"])),
+			// 		CurrentProduction: energy,
+			// 		Consumption:       int64(utils.DoCastF64(planet["production"].(map[string]any)["hourly"].(map[string]any)["3"])),
+			// 	},
+			// },
 			Supplies: ogame.ResourcesBuildings{
 				MetalMine:            int64(utils.DoCastF64(planet["1"])),
 				CrystalMine:          int64(utils.DoCastF64(planet["2"])),

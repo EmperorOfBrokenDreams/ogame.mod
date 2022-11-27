@@ -10,10 +10,12 @@ import (
 const (
 	OverviewPageName         = "overview"
 	PreferencesPageName      = "preferences"
-	ResourceSettingsPageName = "resourceSettings"
+	ResourceSettingsPageName = "resourcesettings"
 	DefensesPageName         = "defenses"
 	LfBuildingsPageName      = "lfbuildings"
 	LfResearchPageName       = "lfresearch"
+	LFSettingsPageName       = "lfsettings"
+	LFOverview               = "lfoverview"
 	SuppliesPageName         = "supplies"
 	FacilitiesPageName       = "facilities"
 	FleetdispatchPageName    = "fleetdispatch"
@@ -66,7 +68,7 @@ const (
 
 func (b *OGame) getPage(page string, opts ...Option) ([]byte, error) {
 	vals := url.Values{"page": {"ingame"}, "component": {page}}
-	if page == FetchResourcesPageName || page == FetchTechsName {
+	if page == FetchResourcesPageName || page == FetchTechsName || page == LogoutPageName {
 		vals = url.Values{"page": {page}}
 	}
 	return b.getPageContent(vals, opts...)

@@ -1333,7 +1333,11 @@ func IsKnowFullPage(vals url.Values) bool {
 		page == DefensesPageName ||
 		page == SuppliesPageName ||
 		page == FacilitiesPageName ||
-		page == FleetdispatchPageName
+		page == FleetdispatchPageName ||
+		page == LfBuildingsPageName ||
+		page == LfResearchPageName ||
+		page == LFSettingsPageName ||
+		page == LFOverview
 }
 
 func IsEmpirePage(vals url.Values) bool {
