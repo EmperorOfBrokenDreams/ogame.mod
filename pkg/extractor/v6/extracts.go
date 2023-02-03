@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"math"
 	"net/url"
@@ -1205,7 +1206,7 @@ func extractFleetsFromDoc(doc *goquery.Document, location *time.Location, lifefo
 	return
 }
 
-func extractSlotsFromDoc(doc *goquery.Document) ogame.Slots {
+func extractSlotsFromDoc(doc *goquery.Document) (ogame.Slots, error) {
 	slots := ogame.Slots{}
 	page := ExtractBodyIDFromDoc(doc)
 	if page == "movement" {
@@ -1227,8 +1228,10 @@ func extractSlotsFromDoc(doc *goquery.Document) ogame.Slots {
 			slots.ExpInUse = utils.DoParseI64(m[1])
 			slots.ExpTotal = utils.DoParseI64(m[2])
 		}
+	} else {
+		return slots, fmt.Errorf("invalid page %s for slots", page)
 	}
-	return slots
+	return slots, nil
 }
 
 func extractServerTimeFromDoc(doc *goquery.Document) (time.Time, error) {

@@ -223,8 +223,10 @@ func NewNoLogin(username, password, otpSecret, bearerToken, universe, lang, cook
 	b.language = lang
 	b.playerID = playerID
 
-	b.extractor = v874.NewExtractor()
-	b.extractor.SetLanguage(lang)
+	ext := v874.NewExtractor()
+	ext.SetLanguage(lang)
+	ext.SetLocation(time.UTC)
+	b.extractor = ext
 
 	if client == nil {
 		jar, err := cookiejar.New(&cookiejar.Options{
@@ -673,20 +675,21 @@ func (b *OGame) loginPart2(server Server) error {
 }
 
 func (b *OGame) loginPart3(userAccount Account, page parser.OverviewPage) error {
+	var ext extractor.Extractor = v9.NewExtractor()
 	if ogVersion, err := version.NewVersion(b.serverData.Version); err == nil {
 		if ogVersion.GreaterThanOrEqual(version.Must(version.NewVersion("9.0.0"))) {
-			b.extractor = v9.NewExtractor()
+			ext = v9.NewExtractor()
 		} else if ogVersion.GreaterThanOrEqual(version.Must(version.NewVersion("8.7.4-pl3"))) {
-			b.extractor = v874.NewExtractor()
+			ext = v874.NewExtractor()
 		} else if ogVersion.GreaterThanOrEqual(version.Must(version.NewVersion("8.0.0"))) {
-			b.extractor = v8.NewExtractor()
+			ext = v8.NewExtractor()
 		} else if ogVersion.GreaterThanOrEqual(version.Must(version.NewVersion("7.1.0-rc0"))) {
-			b.extractor = v71.NewExtractor()
+			ext = v71.NewExtractor()
 		} else if ogVersion.GreaterThanOrEqual(version.Must(version.NewVersion("7.0.0-rc0"))) {
-			b.extractor = v7.NewExtractor()
+			ext = v7.NewExtractor()
 		}
-		b.extractor.SetLanguage(b.language)
-		b.extractor.SetLifeformEnabled(page.ExtractLifeformEnabled())
+		ext.SetLanguage(b.language)
+		ext.SetLifeformEnabled(page.ExtractLifeformEnabled())
 	} else {
 		b.error("failed to parse ogame version: " + err.Error())
 	}
@@ -703,7 +706,8 @@ func (b *OGame) loginPart3(userAccount Account, page parser.OverviewPage) error 
 
 	serverTime, _ := page.ExtractServerTime()
 	b.location = serverTime.Location()
-	b.extractor.SetLocation(b.location)
+	ext.SetLocation(b.location)
+	b.extractor = ext
 
 	b.cacheFullPageInfo(page)
 
@@ -1053,9 +1057,11 @@ LOOP:
 				break
 			}
 		}
+		b.Lock()
 		for _, clb := range b.wsCallbacks {
 			go clb([]byte(buf))
 		}
+		b.Unlock()
 		if buf == "3probe" {
 			_ = websocket.Message.Send(b.ws, "5")
 			_ = websocket.Message.Send(b.ws, "40/chat,")
@@ -1224,9 +1230,11 @@ LOOP:
 				break
 			}
 		}
+		b.Lock()
 		for _, clb := range b.wsCallbacks {
 			go clb(buf[0:n])
 		}
+		b.Unlock()
 		msg := bytes.Trim(buf, "\x00")
 		if bytes.Equal(msg, []byte("1::")) {
 			_, _ = b.ws.Write([]byte("1::/chat"))       // subscribe to chat events
@@ -1881,12 +1889,12 @@ func (b *OGame) setPreferences(p ogame.Preferences) error {
 	return err
 }
 
-func (b *OGame) getPlanets() []Planet {
+func (b *OGame) getPlanets() (out []Planet, err error) {
 	page, err := getPage[parser.OverviewPage](b)
 	if err != nil {
-		return []Planet{}
+		return
 	}
-	return convertPlanets(b, page.ExtractPlanets())
+	return convertPlanets(b, page.ExtractPlanets()), nil
 }
 
 func (b *OGame) getPlanet(v any) (Planet, error) {
@@ -1901,12 +1909,12 @@ func (b *OGame) getPlanet(v any) (Planet, error) {
 	return convertPlanet(b, planet), nil
 }
 
-func (b *OGame) getMoons() []Moon {
+func (b *OGame) getMoons() (out []Moon, err error) {
 	page, err := getPage[parser.OverviewPage](b)
 	if err != nil {
-		return []Moon{}
+		return
 	}
-	return convertMoons(b, page.ExtractMoons())
+	return convertMoons(b, page.ExtractMoons()), nil
 }
 
 func (b *OGame) getMoon(v any) (Moon, error) {
@@ -1996,22 +2004,20 @@ func (b *OGame) abandon(v any) error {
 	return err
 }
 
-func (b *OGame) serverTime() time.Time {
+func (b *OGame) serverTime() (out time.Time, err error) {
 	page, err := getPage[parser.OverviewPage](b)
-	serverTime, err := page.ExtractServerTime()
 	if err != nil {
-		b.error(err.Error())
+		return
 	}
-	return serverTime
+	return page.ExtractServerTime()
 }
 
-func (b *OGame) getUserInfos() ogame.UserInfos {
+func (b *OGame) getUserInfos() (out ogame.UserInfos, err error) {
 	page, err := getPage[parser.OverviewPage](b)
-	userInfos, err := page.ExtractUserInfos()
 	if err != nil {
-		b.error(err)
+		return
 	}
-	return userInfos
+	return page.ExtractUserInfos()
 }
 
 // ChatPostResp ...
@@ -2068,7 +2074,7 @@ func (b *OGame) getFleets(opts ...Option) ([]ogame.Fleet, ogame.Slots) {
 		return []ogame.Fleet{}, ogame.Slots{}
 	}
 	fleets := page.ExtractFleets()
-	slots := page.ExtractSlots()
+	slots, _ := page.ExtractSlots()
 	return fleets, slots
 }
 
@@ -2087,8 +2093,11 @@ func (b *OGame) cancelFleet(fleetID ogame.FleetID) error {
 	return nil
 }
 
-func (b *OGame) getSlots() ogame.Slots {
-	pageHTML, _ := b.getPage(FleetdispatchPageName)
+func (b *OGame) getSlots() (out ogame.Slots, err error) {
+	pageHTML, err := b.getPage(FleetdispatchPageName)
+	if err != nil {
+		return
+	}
 	return b.extractor.ExtractSlots(pageHTML)
 }
 
@@ -2987,19 +2996,20 @@ func (b *OGame) setResourceSettings(planetID ogame.PlanetID, settings ogame.Reso
 
 func (b *OGame) getCachedResearch() ogame.Researches {
 	if b.researches == nil {
-		return b.getResearch()
+		researches, _ := b.getResearch()
+		return researches
 	}
 	return *b.researches
 }
 
-func (b *OGame) getResearch() ogame.Researches {
+func (b *OGame) getResearch() (out ogame.Researches, err error) {
 	page, err := getPage[parser.ResearchPage](b)
 	if err != nil {
-		return ogame.Researches{}
+		return
 	}
 	researches := page.ExtractResearch()
 	b.researches = &researches
-	return researches
+	return researches, nil
 }
 
 func (b *OGame) getResourcesBuildings(celestialID ogame.CelestialID, options ...Option) (ogame.ResourcesBuildings, error) {
@@ -3716,7 +3726,7 @@ func (b *OGame) sendFleet(celestialID ogame.CelestialID, ships []ogame.Quantifia
 		}
 	}
 
-	slots = b.extractor.ExtractSlotsFromDoc(movementDoc)
+	slots, _ = b.extractor.ExtractSlotsFromDoc(movementDoc)
 	if slots.InUse == slots.Total {
 		return ogame.Fleet{}, ogame.ErrAllSlotsInUse
 	}
@@ -4041,7 +4051,7 @@ func getProductions(resBuildings ogame.ResourcesBuildings, resSettings ogame.Res
 func (b *OGame) getResourcesProductions(planetID ogame.PlanetID) (ogame.Resources, error) {
 	planet, _ := b.getPlanet(planetID)
 	resBuildings, _ := b.getResourcesBuildings(planetID.Celestial())
-	researches := b.getResearch()
+	researches, _ := b.getResearch()
 	universeSpeed := b.serverData.Speed
 	resSettings, _ := b.getResourceSettings(planetID)
 	ratio := productionRatio(planet.Temperature, resBuildings, resSettings, researches.EnergyTechnology)
@@ -4452,7 +4462,7 @@ func (b *OGame) IsVacationModeEnabled() bool {
 }
 
 // GetPlanets returns the user planets
-func (b *OGame) GetPlanets() []Planet {
+func (b *OGame) GetPlanets() ([]Planet, error) {
 	return b.WithPriority(taskRunner.Normal).GetPlanets()
 }
 
@@ -4485,7 +4495,7 @@ func (b *OGame) GetPlanet(v any) (Planet, error) {
 }
 
 // GetMoons returns the user moons
-func (b *OGame) GetMoons() []Moon {
+func (b *OGame) GetMoons() ([]Moon, error) {
 	return b.WithPriority(taskRunner.Normal).GetMoons()
 }
 
@@ -4523,7 +4533,7 @@ func (b *OGame) ServerVersion() string {
 
 // ServerTime returns server time
 // Timezone is OGT (OGame Time zone)
-func (b *OGame) ServerTime() time.Time {
+func (b *OGame) ServerTime() (time.Time, error) {
 	return b.WithPriority(taskRunner.Normal).ServerTime()
 }
 
@@ -4533,7 +4543,7 @@ func (b *OGame) Location() *time.Location {
 }
 
 // GetUserInfos gets the user information
-func (b *OGame) GetUserInfos() ogame.UserInfos {
+func (b *OGame) GetUserInfos() (ogame.UserInfos, error) {
 	return b.WithPriority(taskRunner.Normal).GetUserInfos()
 }
 
@@ -4615,12 +4625,12 @@ func (b *OGame) GetCachedResearch() ogame.Researches {
 }
 
 // GetResearch gets the player researches information
-func (b *OGame) GetResearch() ogame.Researches {
+func (b *OGame) GetResearch() (ogame.Researches, error) {
 	return b.WithPriority(taskRunner.Normal).GetResearch()
 }
 
 // GetSlots gets the player current and total slots information
-func (b *OGame) GetSlots() ogame.Slots {
+func (b *OGame) GetSlots() (ogame.Slots, error) {
 	return b.WithPriority(taskRunner.Normal).GetSlots()
 }
 
