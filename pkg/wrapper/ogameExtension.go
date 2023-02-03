@@ -1126,7 +1126,7 @@ func (b *OGame) SelectCharacterClass(c ogame.CharacterClass) error {
 
 // CalcCargo ...
 func (bot *OGame) CalcCargo(total int64) (sc, lc, rc, pf, ds int64) {
-	research := bot.GetResearch()
+	research, _ := bot.GetResearch()
 
 	lc = int64(math.Ceil(float64(total) / float64(ogame.LargeCargo.GetCargoCapacity(research, bot.GetServerData().ProbeCargo != 0, bot.CharacterClass().IsCollector(), bot.IsPioneers()))))
 	sc = int64(math.Ceil(float64(total) / float64(ogame.SmallCargo.GetCargoCapacity(research, bot.GetServerData().ProbeCargo != 0, bot.CharacterClass().IsCollector(), bot.IsPioneers()))))
