@@ -12,6 +12,7 @@ import (
 	"image/color"
 	"image/png"
 	"io"
+	"io/fs"
 	"io/ioutil"
 	"log"
 	"math"
@@ -572,10 +573,58 @@ func (b *OGame) loginPart1(token string) (server Server, userAccount Account, er
 		return
 	}
 	b.debug("get servers")
-	servers, err := GetServers(b.lobby, b.client, b.ctx)
-	if err != nil {
-		return
+	////////////////////////////////////////
+	var servers []Server
+	var serversPioneers []Server
+	var serversJsonInfo fs.FileInfo
+	if serversJsonInfo, err = os.Stat("servers.json"); err == nil {
+		fmt.Printf("File exists\n")
+		duration := time.Now().Sub(serversJsonInfo.ModTime())
+		if duration.Hours() > 24 {
+			servers, err = GetServers(Lobby, b.client, b.ctx)
+			if err != nil {
+				return
+			}
+			serversPioneers, err = GetServers(LobbyPioneers, b.client, b.ctx)
+			if err != nil {
+				return
+			}
+			servers = append(servers, serversPioneers...)
+			serversJson, _ := json.MarshalIndent(servers, "", " ")
+			os.WriteFile("servers.json", serversJson, 0666)
+		} else {
+			var serversJson []byte
+			serversJson, err = os.ReadFile("servers.json")
+			if err != nil {
+				return
+			}
+			err = json.Unmarshal(serversJson, &servers)
+			if err != nil {
+				return
+			}
+		}
+	} else {
+		fmt.Printf("File does not exist\n")
+		servers, err = GetServers(Lobby, b.client, b.ctx)
+		if err != nil {
+			return
+		}
+
+		serversPioneers, err = GetServers(LobbyPioneers, b.client, b.ctx)
+		if err != nil {
+			return
+		}
+		allServers := append(servers, serversPioneers...)
+		serversJson, _ := json.MarshalIndent(allServers, "", " ")
+		os.WriteFile("servers.json", serversJson, 0666)
 	}
+
+	////////////////////////////////////////
+
+	// servers, err := GetServers(b.lobby, b.client, b.ctx)
+	// if err != nil {
+	// 	return
+	// }
 	b.debug("find account & server for universe")
 	userAccount, server, err = findAccount(b.Universe, b.language, b.playerID, accounts, servers)
 	if err != nil {
@@ -1811,6 +1860,9 @@ func (b *OGame) setPreferences(p ogame.Preferences) error {
 	}
 	if p.DisableOutlawWarning {
 		payload.Set("disableOutlawWarning", "on")
+	}
+	if p.DisableChatBar {
+		payload.Set("disableChatBar", "on")
 	}
 	if p.DiscoveryWarningEnabled {
 		payload.Set("discoveryWarningEnabled", "1")

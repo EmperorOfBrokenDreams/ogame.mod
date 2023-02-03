@@ -112,6 +112,7 @@ type PlanetInfos struct {
 		IsBandit   bool
 		IsStarlord bool
 	}
-	Alliance *AllianceInfos
-	Date     time.Time
+	Alliance    *AllianceInfos
+	CanDiscover bool
+	Date        time.Time
 }
