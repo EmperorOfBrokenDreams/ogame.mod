@@ -18,6 +18,7 @@ require (
 	github.com/labstack/gommon v0.3.1
 	github.com/magiconair/properties v1.8.1
 	github.com/mattn/anko v0.1.9
+	github.com/martinlindhe/base36 v1.1.1
 	github.com/olekukonko/tablewriter v0.0.4
 	github.com/orirawlings/persistent-cookiejar v0.3.0
 	github.com/pkg/errors v0.9.1
