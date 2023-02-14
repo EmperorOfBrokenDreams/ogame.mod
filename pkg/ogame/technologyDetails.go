@@ -8,4 +8,5 @@ type TechnologyDetails struct {
 	Price              Resources
 	Level              int64
 	TearDownEnabled    bool
+	UpgradeEnabled     bool
 }
