@@ -1396,7 +1396,7 @@ func IsKnowFullPage(vals url.Values) bool {
 		page == LfResearchPageName ||
 		page == LFSettingsPageName ||
 		page == LFOverview ||
-		page == RewardsPageName
+		page == "rewarding"
 }
 
 func IsEmpirePage(vals url.Values) bool {
