@@ -2,14 +2,15 @@ package wrapper
 
 import (
 	"bytes"
+	"io/ioutil"
+	"regexp"
+	"testing"
+
 	"github.com/PuerkitoBio/goquery"
 	"github.com/alaingilbert/ogame/pkg/ogame"
 	"github.com/alaingilbert/ogame/pkg/utils"
 	"github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/assert"
-	"io/ioutil"
-	"regexp"
-	"testing"
 )
 
 func BenchmarkUserInfoRegex(b *testing.B) {
@@ -39,7 +40,7 @@ func BenchmarkUserInfoGoquery(b *testing.B) {
 
 func TestWrapper(t *testing.T) {
 	var bot Wrapper
-	bot, _ = NewNoLogin("", "", "", "", "", "", "", 0, nil)
+	bot, _ = NewNoLogin("", "", "", "", "", "", 0, nil)
 	assert.NotNil(t, bot)
 }
 

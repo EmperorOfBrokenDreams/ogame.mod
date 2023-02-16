@@ -25,11 +25,11 @@ import (
 )
 
 func (b *OGame) GetUserAccounts() ([]Account, error) {
-	return GetUserAccounts(b.client, b.ctx, b.lobby, b.GetBearerToken())
+	return GetUserAccounts(b.device.GetClient(), b.ctx, b.lobby, b.GetBearerToken())
 }
 
 func (b *OGame) GetServers() ([]Server, error) {
-	return GetServers(b.lobby, b.client, b.ctx)
+	return GetServers(b.lobby, b.device.GetClient(), b.ctx)
 }
 
 func (b *OGame) GetPassword() string {
@@ -42,7 +42,7 @@ func (b *OGame) FindAccount(universe, lang string, playerID int64, accounts []Ac
 
 func (b *OGame) GetBearerToken() string {
 	if b.bearerToken == "" {
-		cookies := b.client.Jar.(*cookiejar.Jar).AllCookies()
+		cookies := b.device.GetClient().Jar.(*cookiejar.Jar).AllCookies()
 		for _, c := range cookies {
 			if c.Name == TokenCookieName {
 				b.bearerToken = c.Value
