@@ -2,27 +2,33 @@ package v8
 
 import (
 	"errors"
-	"github.com/PuerkitoBio/goquery"
-	v71 "github.com/alaingilbert/ogame/pkg/extractor/v71"
-	"github.com/alaingilbert/ogame/pkg/ogame"
-	"github.com/alaingilbert/ogame/pkg/utils"
 	"net/url"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/PuerkitoBio/goquery"
+	v71 "github.com/alaingilbert/ogame/pkg/extractor/v71"
+	"github.com/alaingilbert/ogame/pkg/ogame"
+	"github.com/alaingilbert/ogame/pkg/utils"
 )
 
 func extractIsInVacationFromDoc(doc *goquery.Document) bool {
-	href := doc.Find("div#advice-bar a").AttrOr("href", "")
-	if href == "" {
+	var isVacation bool
+	doc.Find("div#advice-bar a").EachWithBreak(func(i int, s *goquery.Selection) bool {
+		href := s.AttrOr("href", "")
+		if href == "" {
+			return false
+		}
+		u, _ := url.Parse(href)
+		q := u.Query()
+		if q.Get("component") == "preferences" && q.Get("selectedTab") == "3" && q.Get("openGroup") == "0" {
+			isVacation = true
+			return true
+		}
 		return false
-	}
-	u, _ := url.Parse(href)
-	q := u.Query()
-	if q.Get("component") == "preferences" && q.Get("selectedTab") == "3" && q.Get("openGroup") == "0" {
-		return true
-	}
-	return false
+	})
+	return isVacation
 }
 
 func extractEspionageReportFromDoc(doc *goquery.Document, location *time.Location) (ogame.EspionageReport, error) {

@@ -8,6 +8,7 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -864,6 +865,9 @@ func (b *OGame) HasTechnocrat() bool {
 	return b.hasTechnocrat
 }
 
+// never obfuscate this type
+var _ = reflect.TypeOf(GiftCodePayload{})
+
 type GiftCodePayload struct {
 	GameAccountID int64      `json:"gameAccountId"`
 	Server        GiftServer `json:"server"`
@@ -1027,71 +1031,73 @@ func (b *OGame) CreateGiftCode() string {
 }
 
 func (b *OGame) CreateGiftCodeSingleAccount(accountID int64, number int64, lang string) string {
-	client := b.GetClient()
+	// client := b.GetClient()
 
-	var payload struct {
-		Accounts []struct {
-			GameAccountID int64 `json:"gameAccountId"`
-			Server        struct {
-				Language string `json:"language"`
-				Number   int64  `json:"number"`
-			} `json:"server"`
-		} `json:"accounts"`
-	}
-	payload.Accounts = append(payload.Accounts, struct {
-		GameAccountID int64 `json:"gameAccountId"`
-		Server        struct {
-			Language string `json:"language"`
-			Number   int64  `json:"number"`
-		} `json:"server"`
-	}{
-		GameAccountID: accountID,
-		Server: struct {
-			Language string `json:"language"`
-			Number   int64  `json:"number"`
-		}{
-			Language: lang,
-			Number:   number,
-		},
-	})
+	// var payload struct {
+	// 	Accounts []struct {
+	// 		GameAccountID int64 `json:"gameAccountId"`
+	// 		Server        struct {
+	// 			Language string `json:"language"`
+	// 			Number   int64  `json:"number"`
+	// 		} `json:"server"`
+	// 	} `json:"accounts"`
+	// }
+	// payload.Accounts = append(payload.Accounts, struct {
+	// 	GameAccountID int64 `json:"gameAccountId"`
+	// 	Server        struct {
+	// 		Language string `json:"language"`
+	// 		Number   int64  `json:"number"`
+	// 	} `json:"server"`
+	// }{
+	// 	GameAccountID: accountID,
+	// 	Server: struct {
+	// 		Language string `json:"language"`
+	// 		Number   int64  `json:"number"`
+	// 	}{
+	// 		Language: lang,
+	// 		Number:   number,
+	// 	},
+	// })
 
-	jsonPayloadBytes, err := json.Marshal(&payload)
-	if err != nil {
-		return ""
-	}
-	req, err := http.NewRequest("PUT", "https://"+b.lobby+".ogame.gameforge.com/api/users/me/accountTrading", strings.NewReader(string(jsonPayloadBytes)))
-	if err != nil {
-		return ""
-	}
+	// jsonPayloadBytes, err := json.Marshal(&payload)
+	// if err != nil {
+	// 	return ""
+	// }
+	// req, err := http.NewRequest("PUT", "https://"+b.lobby+".ogame.gameforge.com/api/users/me/accountTrading", strings.NewReader(string(jsonPayloadBytes)))
+	// if err != nil {
+	// 	return ""
+	// }
 
-	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Accept-Encoding", "gzip, deflate, br")
-	req.Header.Add("authorization", "Bearer "+b.GetBearerToken())
-	resp, err := client.Do(req)
-	if err != nil {
-		return ""
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode == 409 {
-		gfChallengeID := resp.Header.Get(TokenCookieName) // c434aa65-a064-498f-9ca4-98054bab0db8;https://challenge.gameforge.com
-		if gfChallengeID != "" {
-			parts := strings.Split(gfChallengeID, ";")
-			challengeID := parts[0]
-			return "error" + challengeID
-		}
-	}
+	// req.Header.Add("Content-Type", "application/json")
+	// req.Header.Add("Accept-Encoding", "gzip, deflate, br")
+	// req.Header.Add("authorization", "Bearer "+b.GetBearerToken())
+	// resp, err := client.Do(req)
+	// if err != nil {
+	// 	return ""
+	// }
+	// defer resp.Body.Close()
+	// if resp.StatusCode == 409 {
+	// 	gfChallengeID := resp.Header.Get(TokenCookieName) // c434aa65-a064-498f-9ca4-98054bab0db8;https://challenge.gameforge.com
+	// 	if gfChallengeID != "" {
+	// 		parts := strings.Split(gfChallengeID, ";")
+	// 		challengeID := parts[0]
+	// 		return "error" + challengeID
+	// 	}
+	// }
 
-	by, err := utils.ReadBody(resp)
-	if err != nil {
-		return ""
-	}
-	var res struct {
-		Token string `json:"token"`
-	}
-	if err := json.Unmarshal(by, &res); err != nil {
+	// by, err := utils.ReadBody(resp)
+	// if err != nil {
+	// 	return ""
+	// }
+	// var res struct {
+	// 	Token string `json:"token"`
+	// }
+	// if err := json.Unmarshal(by, &res); err != nil {
 
-	}
-	return res.Token
+	// }
+	// return res.Token
+
+	return ""
 }
 
 func (b *OGame) SelectCharacterClass(c ogame.CharacterClass) error {

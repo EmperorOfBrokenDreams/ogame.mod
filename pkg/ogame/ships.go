@@ -1,8 +1,9 @@
 package ogame
 
 import (
-	"github.com/alaingilbert/ogame/pkg/utils"
 	"math"
+
+	"github.com/alaingilbert/ogame/pkg/utils"
 )
 
 // ShipsInfos represent a planet ships information
