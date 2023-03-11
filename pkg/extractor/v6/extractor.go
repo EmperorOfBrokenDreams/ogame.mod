@@ -913,3 +913,8 @@ func (e *Extractor) ExtractLfResearch(pageHTML []byte) (ogame.LfResearches, erro
 func (e *Extractor) ExtractLfResearchFromDoc(doc *goquery.Document) (ogame.LfResearches, error) {
 	panic("not implemented")
 }
+
+// ExtractAvailableDiscoveries
+func (e *Extractor) ExtractAvailableDiscoveries(pageHTML []byte) int64 {
+	panic("not implemented")
+}
