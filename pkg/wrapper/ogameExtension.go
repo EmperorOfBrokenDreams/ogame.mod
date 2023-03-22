@@ -1866,3 +1866,7 @@ func (b *OGame) SetAllianceClass(class ogame.AllianceClass) error {
 func (b *OGame) FlightTime2(origin, destination ogame.Coordinate, speed ogame.Speed, ships ogame.ShipsInfos, missionID ogame.MissionID, holdingTime int64) (secs, fuel int64) {
 	return b.WithPriority(taskRunner.Normal).FlightTime2(origin, destination, speed, ships, missionID, holdingTime)
 }
+
+func (b *OGame) GetLobby() string {
+	return b.lobby
+}
