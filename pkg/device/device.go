@@ -6,10 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/alaingilbert/ogame/pkg/httpclient"
-	"github.com/alaingilbert/ogame/pkg/utils"
-	"github.com/martinlindhe/base36"
-	cookiejar "github.com/orirawlings/persistent-cookiejar"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -17,6 +13,11 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/alaingilbert/ogame/pkg/httpclient"
+	"github.com/alaingilbert/ogame/pkg/utils"
+	"github.com/martinlindhe/base36"
+	cookiejar "github.com/orirawlings/persistent-cookiejar"
 )
 
 type Os string
@@ -235,7 +236,7 @@ func (d *Builder) Build() (*Device, error) {
 	}
 	if d.navigatorVendor == "" {
 		d.setRandomNavigatorVendor()
-		if d.navigatorVendor == "" {
+		if d.navigatorVendor == "" && d.browserName != Firefox {
 			return nil, errors.New("navigatorVendor must be specified")
 		}
 	}
@@ -300,7 +301,7 @@ type JsFingerprint struct {
 	DateIso               string
 	Game1DateHeader       string
 	CalcDeltaMs           int64
-	NavigatorDoNotTrack   bool
+	NavigatorDoNotTrack   string
 	LocalStorageEnabled   bool
 	SessionStorageEnabled bool
 	VideoHash             string
@@ -345,7 +346,7 @@ func (d *Device) GetBlackbox() (string, error) {
 		DateIso:               time.Now().UTC().Format(javascriptISOString),
 		Game1DateHeader:       game1DateHeader,
 		CalcDeltaMs:           elapsed,
-		NavigatorDoNotTrack:   false,
+		NavigatorDoNotTrack:   "1",
 		LocalStorageEnabled:   true,
 		SessionStorageEnabled: true,
 		VideoHash:             randFakeHash(),
@@ -376,9 +377,11 @@ func (d *Device) GetBlackbox() (string, error) {
 		}
 	}
 
+	// fprt.DateIso = time.Now().UTC().Format(javascriptISOString)
 	fprt.Game1DateHeader = game1DateHeader
 	fprt.CalcDeltaMs = elapsed
 
+	//by, err := json.MarshalIndent(fprt, "", " ")
 	by, err := json.Marshal(fprt)
 	if err != nil {
 		return "", err
@@ -786,6 +789,10 @@ func (d *Builder) setRandomMemory() {
 	if d.osName == Android {
 		// 1, 2, 4, 8
 		d.memory = 8
+	} else {
+		d.memory = utils.RandChoice([]int{
+			4, 8, 16, 32, 64,
+		})
 	}
 }
 
@@ -912,7 +919,7 @@ var timezones = []string{"Africa/Abidjan", "Africa/Accra", "Africa/Addis_Ababa",
 	"Pacific/Kosrae", "Pacific/Kwajalein", "Pacific/Majuro", "Pacific/Marquesas", "Pacific/Midway", "Pacific/Nauru",
 	"Pacific/Niue", "Pacific/Norfolk", "Pacific/Noumea", "Pacific/Pago_Pago", "Pacific/Palau", "Pacific/Pitcairn",
 	"Pacific/Ponape", "Pacific/Port_Moresby", "Pacific/Rarotonga", "Pacific/Saipan", "Pacific/Tahiti", "Pacific/Tarawa",
-	"Pacific/Tongatapu", "Pacific/Truk", "Pacific/Wake", "Pacific/Wallis"}
+	"Pacific/Tongatapu", "Pacific/Truk", "Pacific/Wake", "Pacific/Wallis", "UTC"}
 
 func EncryptBlackbox(raw string) string {
 	retardPseudoB64 := func(v []uint8) string {
@@ -1086,7 +1093,7 @@ func ParseBlackbox(decrypted string) (*JsFingerprint, error) {
 		return nil, errors.New("failed to parse CalcDeltaMs")
 	}
 	fingerprint.CalcDeltaMs = int64(calcDeltaMs)
-	fingerprint.NavigatorDoNotTrack, ok = arr[2].(bool)
+	fingerprint.NavigatorDoNotTrack, ok = arr[2].(string)
 	if !ok {
 		return nil, errors.New("failed to parse NavigatorDoNotTrack")
 	}

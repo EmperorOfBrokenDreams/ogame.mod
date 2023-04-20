@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"regexp"
 	"strings"
@@ -18,6 +19,7 @@ import (
 	"github.com/alaingilbert/ogame/pkg/httpclient"
 	"github.com/alaingilbert/ogame/pkg/ogame"
 	"github.com/alaingilbert/ogame/pkg/utils"
+	cookiejar "github.com/orirawlings/persistent-cookiejar"
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
 )
@@ -49,7 +51,7 @@ var (
 )
 
 // Register a new gameforge lobby account
-func Register(client httpclient.IHttpClient, ctx context.Context, lobby, email, password, challengeID, lang string) error {
+func Register(device *device.Device, ctx context.Context, lobby, email, password, challengeID, lang string) (err error) {
 	if lang == "" {
 		lang = "en"
 	}
@@ -60,10 +62,15 @@ func Register(client httpclient.IHttpClient, ctx context.Context, lobby, email, 
 		} `json:"credentials"`
 		Language string `json:"language"`
 		Kid      string `json:"kid"`
+		BlackBox string `json:"blackbox"`
 	}
 	payload.Credentials.Email = email
 	payload.Credentials.Password = password
 	payload.Language = lang
+	payload.BlackBox, err = device.GetBlackbox()
+	if err != nil {
+		return err
+	}
 	jsonPayloadBytes, err := json.Marshal(&payload)
 	if err != nil {
 		return err
@@ -77,8 +84,8 @@ func Register(client httpclient.IHttpClient, ctx context.Context, lobby, email, 
 	}
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Accept-Encoding", "gzip, deflate, br")
-	req.WithContext(ctx)
-	resp, err := client.Do(req)
+	var resp *http.Response
+	resp, err = device.GetClient().Do(req.WithContext(ctx))
 	if err != nil {
 		return err
 	}
@@ -230,8 +237,7 @@ func AddAccount(client httpclient.IHttpClient, ctx context.Context, lobby, accou
 	req.Header.Add("authorization", "Bearer "+sessionToken)
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Accept-Encoding", "gzip, deflate, br")
-	req.WithContext(ctx)
-	resp, err := client.Do(req)
+	resp, err := client.Do(req.WithContext(ctx))
 	if err != nil {
 		return nil, err
 	}
@@ -281,9 +287,7 @@ func GFLogin(dev *device.Device, ctx context.Context, lobby, username, password,
 		return out, err
 	}
 
-	req.WithContext(ctx)
-
-	resp, err := dev.GetClient().Do(req)
+	resp, err := dev.GetClient().Do(req.WithContext(ctx))
 	if err != nil {
 		return out, err
 	}
@@ -322,8 +326,12 @@ func GFLogin(dev *device.Device, ctx context.Context, lobby, username, password,
 	}
 
 	if err := json.Unmarshal(by, &out); err != nil {
+		if err := dev.GetClient().Jar.(*cookiejar.Jar).Save(); err != nil {
+			return out, err
+		}
 		return out, err
 	}
+
 	return out, nil
 }
 
@@ -334,8 +342,7 @@ func getConfiguration(client httpclient.IHttpClient, ctx context.Context, lobby 
 		return "", "", err
 	}
 	req.Header.Add("Accept-Encoding", "gzip, deflate, br")
-	req.WithContext(ctx)
-	resp, err := client.Do(req)
+	resp, err := client.Do(req.WithContext(ctx))
 	if err != nil {
 		return "", "", err
 	}
@@ -364,21 +371,21 @@ func getConfiguration(client httpclient.IHttpClient, ctx context.Context, lobby 
 
 func postSessionsReq(gameEnvironmentID, platformGameID, username, password, otpSecret, challengeID, blackbox string) (*http.Request, error) {
 	var payload = struct {
-		Identity                string `json:"identity"`
-		Password                string `json:"password"`
-		Locale                  string `json:"locale"`
-		GfLang                  string `json:"gfLang"`
-		PlatformGameID          string `json:"platformGameId"`
+		AutoGameAccountCreation bool   `json:"autoGameAccountCreation"`
 		Blackbox                string `json:"blackbox"`
 		GameEnvironmentID       string `json:"gameEnvironmentId"`
-		AutoGameAccountCreation bool   `json:"autoGameAccountCreation"`
+		GfLang                  string `json:"gfLang"`
+		Identity                string `json:"identity"`
+		Locale                  string `json:"locale"`
+		Password                string `json:"password"`
+		PlatformGameID          string `json:"platformGameId"`
 	}{
 		Identity:                username,
 		Password:                password,
-		Locale:                  "en_GB",
-		GfLang:                  "en",
+		Locale:                  "en_US",
+		GfLang:                  "us",
 		PlatformGameID:          platformGameID,
-		Blackbox:                "tra:" + blackbox,
+		Blackbox:                `tra:` + blackbox,
 		GameEnvironmentID:       gameEnvironmentID,
 		AutoGameAccountCreation: false,
 	}
@@ -587,8 +594,7 @@ func GetServerData(client httpclient.IHttpClient, ctx context.Context, serverNum
 		return serverData, err
 	}
 	req.Header.Add("Accept-Encoding", "gzip, deflate, br")
-	req.WithContext(ctx)
-	resp, err := client.Do(req)
+	resp, err := client.Do(req.WithContext(ctx))
 	if err != nil {
 		return serverData, err
 	}
@@ -637,8 +643,7 @@ func GetUserAccounts(client httpclient.IHttpClient, ctx context.Context, lobby, 
 	}
 	req.Header.Add("authorization", "Bearer "+bearerToken)
 	req.Header.Add("Accept-Encoding", "gzip, deflate, br")
-	req.WithContext(ctx)
-	resp, err := client.Do(req)
+	resp, err := client.Do(req.WithContext(ctx))
 	if err != nil {
 		return userAccounts, err
 	}
@@ -653,17 +658,42 @@ func GetUserAccounts(client httpclient.IHttpClient, ctx context.Context, lobby, 
 	return userAccounts, nil
 }
 
-func GetLoginLink(client httpclient.IHttpClient, ctx context.Context, lobby string, userAccount Account, bearerToken string) (string, error) {
-	ogURL := fmt.Sprintf("https://%s.ogame.gameforge.com/api/users/me/loginLink?id=%d&server[language]=%s&server[number]=%d&clickedButton=account_list",
-		lobby, userAccount.ID, userAccount.Server.Language, userAccount.Server.Number)
-	req, err := http.NewRequest(http.MethodGet, ogURL, nil)
+func GetLoginLink(dev *device.Device, ctx context.Context, lobby string, userAccount Account, bearerToken string) (string, error) {
+
+	ogURL := fmt.Sprintf("https://%s.ogame.gameforge.com/api/users/me/loginLink", lobby)
+	payload := struct {
+		Server struct {
+			Language string `json:"language"`
+			Number   int64  `json:"number"`
+		} `json:"server"`
+		ID            int64  `json:"id"`
+		ClickedButton string `json:"clickedButton"`
+		Blackbox      string `json:"blackbox"`
+	}{}
+	payload.Server.Language = userAccount.Server.Language
+	payload.Server.Number = userAccount.Server.Number
+	payload.ID = userAccount.ID
+	payload.ClickedButton = "account_list"
+	//payload.ClickedButton = "quick_join"
+	blackbox, _ := dev.GetBlackbox()
+	payload.Blackbox = `tra:` + blackbox
+	//jsonPayloadBytes, err := json.MarshalIndent(&payload, "", " ")
+	jsonPayloadBytes, err := json.Marshal(&payload)
+	if err != nil {
+		return "", err
+	}
+
+	log.Println(string(jsonPayloadBytes))
+
+	req, err := http.NewRequest(http.MethodPost, ogURL, strings.NewReader(string(jsonPayloadBytes)))
 	if err != nil {
 		return "", err
 	}
 	req.Header.Add("authorization", "Bearer "+bearerToken)
+	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Accept-Encoding", "gzip, deflate, br")
-	req.WithContext(ctx)
-	resp, err := client.Do(req)
+
+	resp, err := dev.GetClient().Do(req.WithContext(ctx))
 	if err != nil {
 		return "", err
 	}

@@ -314,7 +314,7 @@ func (b *OGame) loginWithBearerToken(token string) (bool, error) {
 	if err != nil {
 		if err == ogame.ErrNotLogged {
 			b.debug("get login link")
-			loginLink, err := GetLoginLink(b.device.GetClient(), b.ctx, b.lobby, userAccount, token)
+			loginLink, err := GetLoginLink(b.device, b.ctx, b.lobby, userAccount, token)
 			if err != nil {
 				return true, err
 			}
@@ -507,6 +507,9 @@ func (b *OGame) login() error {
 	if err != nil {
 		return err
 	}
+	if err := b.device.GetClient().Jar.(*cookiejar.Jar).Save(); err != nil {
+		return err
+	}
 
 	server, userAccount, err := b.loginPart1(postSessionsRes.Token)
 	if err != nil {
@@ -514,7 +517,7 @@ func (b *OGame) login() error {
 	}
 
 	b.debug("get login link")
-	loginLink, err := GetLoginLink(b.device.GetClient(), b.ctx, b.lobby, userAccount, postSessionsRes.Token)
+	loginLink, err := GetLoginLink(b.device, b.ctx, b.lobby, userAccount, postSessionsRes.Token)
 	if err != nil {
 		return err
 	}
@@ -3483,9 +3486,11 @@ type CheckTargetResponse struct {
 		Message string `json:"message"`
 		Error   int    `json:"error"`
 	} `json:"errors"`
-	TargetOk     bool   `json:"targetOk"`
-	Components   []any  `json:"components"`
-	NewAjaxToken string `json:"newAjaxToken"`
+	TargetOk        bool   `json:"targetOk"`
+	Components      []any  `json:"components"`
+	EmptySystems    int64  `json:"emptySystems"`
+	InactiveSystems int64  `json:"inactiveSystems"`
+	NewAjaxToken    string `json:"newAjaxToken"`
 }
 
 func (b *OGame) sendFleet(celestialID ogame.CelestialID, ships []ogame.Quantifiable, speed ogame.Speed, where ogame.Coordinate,
